@@ -447,14 +447,18 @@ function parseLine(line){
  e.id=e.date+"|"+e.type+"|"+(e.venue||"")+"|"+(e.stage||e.start||"");
  return e}
 document.getElementById("pBtn").onclick=function(){
- var box=document.getElementById("pIn"),st=document.getElementById("pSt"),add=0,skip=0;
+ var box=document.getElementById("pIn"),st=document.getElementById("pSt"),add=0,skip=0,added=[];
  box.value.split(/\n/).forEach(function(l){l=l.trim();if(l.indexOf("|")<0&&l.indexOf("｜")<0)return;var e=parseLine(l);if(!e)return;
   if(e.type==="studio"&&clashOf(e)){skip++;return}
   var same=function(o){return o.id===e.id||(o.date===e.date&&o.type===e.type&&(o.stage||o.start||"")===(e.stage||e.start||""))};
   var old=evs.filter(same)[0];if(old){if(!e.waze&&old.waze&&old.venue===e.venue)e.waze=old.waze;if(old.paid)e.paid=old.paid}
-  evs=evs.filter(function(o){return!same(o)});evs.push(e);add++});
+  evs=evs.filter(function(o){return!same(o)});evs.push(e);added.push(e);add++});
  if(!add&&!skip){st.textContent="לא מצאתי תאריכים בטקסט. הדבק את ההודעה כמו שהיא.";return}
- saveEv();box.value="";st.textContent="נוספו "+add+" אירועים"+(skip?". "+skip+" זמני אולפן לא נוספו כי הם מתנגשים בהופעה":"");drawEvents();fillSlots()};
+ saveEv();box.value="";st.textContent="נוספו "+add+" אירועים"+(skip?". "+skip+" זמני אולפן לא נוספו כי הם מתנגשים בהופעה":"");drawEvents();fillSlots();
+ var cb=document.getElementById("bulkCal");if(cb)cb.remove();
+ var cal=added.filter(function(e){return e.type!=="studio"||e.start});
+ if(cal.length){cb=el("button","go","📅 הוסף "+(cal.length>1?"את כל "+cal.length+" האירועים":"את האירוע")+" ליומן עם תזכורות");cb.type="button";cb.id="bulkCal";cb.style.marginTop="8px";
+  cb.onclick=function(){shareIcs(icsWrap(cal),"schedule.ics");cb.textContent="✓ נפתח היומן"};st.parentNode.parentNode.insertBefore(cb,st.parentNode.nextSibling)}};
 function drawEvents(){
  var n=new Date(),today=n.getFullYear()+"-"+pad(n.getMonth()+1)+"-"+pad(n.getDate());
  drawList(false,"evList","evEmpty",today);drawList(true,"stuList","stuEmpty",today)}
@@ -723,8 +727,10 @@ function icsT(d,t){return d.replace(/-/g,"")+"T"+t.replace(":","")+"00"}
 function icsEsc(s){return String(s||"").replace(/[\;,]/g,function(m){return"\\"+m}).replace(/\n/g,"\\n")}
 function icsShift(d,t,m){var p=d.split("-"),q=t.split(":"),x=new Date(+p[0],+p[1]-1,+p[2],+q[0],+q[1]+m);return{d:x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate()),t:pad(x.getHours())+":"+pad(x.getMinutes())}}
 function alarm(trig,txt,rel){return["BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(txt),"TRIGGER"+(rel?";RELATED=END":"")+":"+trig,"END:VALARM"].join("\r\n")}
-function makeIcs(e){
- var stu=e.type==="studio",L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//my-tasks//he","CALSCALE:GREGORIAN","BEGIN:VEVENT","UID:"+encodeURIComponent(e.id)+"@my-tasks","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z"];
+function makeIcs(e){return icsWrap([e])}
+function icsWrap(list){return["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//my-tasks//he","CALSCALE:GREGORIAN"].concat(list.map(vevent)).concat(["END:VCALENDAR"]).join("\r\n")}
+function vevent(e){
+ var stu=e.type==="studio",L=["BEGIN:VEVENT","UID:"+encodeURIComponent(e.id)+"@my-tasks","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z"];
  if(stu){var en=e.end||icsShift(e.date,e.start,120).t,ed=e.end?e.date:icsShift(e.date,e.start,120).d;if(e.end&&e.end<e.start)ed=icsShift(e.date,"00:00",1440).d;
   L.push("DTSTART:"+icsT(e.date,e.start),"DTEND:"+icsT(ed,en),"SUMMARY:"+icsEsc("🎹 אולפן"+(e.venue?" - "+e.venue:"")),alarm("-PT1H","אולפן בעוד שעה"+(e.venue?" - "+e.venue:"")))}
  else{var st=e.leave||e.ready||e.stage,ev=icsShift(e.date,e.stage||st,240);
@@ -732,13 +738,14 @@ function makeIcs(e){
    "DESCRIPTION:"+icsEsc((e.leave?"יציאה: "+e.leave+"\n":"")+(e.ready?"מוכן: "+e.ready+"\n":"")+(e.stage?"עלייה לבמה: "+e.stage:"")),
    alarm("-PT30M","עוד 30 דקות יוצאים להופעה ב"+(e.venue||"")+(e.leave?" (יציאה "+e.leave+")":"")),
    alarm("PT0M","ההופעה ב"+(e.venue||"")+" שולמה? עדכן באפליקציה",true))}
- L.push("END:VEVENT","END:VCALENDAR");return L.join("\r\n")}
+ L.push("END:VEVENT");return L.join("\r\n")}
 function calBtn(e){var b=el("button","tg","📅 הוסף ליומן עם תזכורות");b.type="button";
- b.onclick=function(){var s=makeIcs(e),name=(e.type==="studio"?"studio":"gig")+"-"+e.date+".ics";
+ b.onclick=function(){shareIcs(makeIcs(e),(e.type==="studio"?"studio":"gig")+"-"+e.date+".ics")};
+ return b}
+function shareIcs(s,name){
   try{var f=new File([s],name,{type:"text/calendar"});if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){navigator.share({files:[f]}).catch(function(){location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(s)});return}}catch(x){}
   if(/iPhone|iPad/i.test(navigator.userAgent)){location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(s);return}
-  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/calendar"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)};
- return b}
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/calendar"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
 
 /* ---- פתיחה באפליקציה ולא באתר ---- */
 function openApp(appUrl,webUrl){var gone=false,t;
@@ -756,6 +763,7 @@ var AI_PROMPT=["אני משתמש באפליקציה \"המשימות שלי\" �
 "DD.MM.YYYY | הופעה | שם האולם | עלייה HH:MM | מוכן HH:MM | יציאה HH:MM | נסיעה דקות",
 "לדוגמה: 17.11.2026 | הופעה | אולמי שרון | עלייה 20:00 | מוכן 19:00 | יציאה 18:45 | נסיעה 15",
 "לזמני אולפן השתמש בפורמט: DD.MM.YYYY | אולפן | שם הלקוח | שעות HH:MM-HH:MM",
+"4. התראות לטלפון: אם יש לך גישה ליומן שלי, הוסף כל הופעה ישירות ליומן: אירוע משעת היציאה ועד 4 שעות אחרי העלייה לבמה, עם התראה 30 דקות לפני היציאה ועוד התראה בסוף האירוע: \"ההופעה שולמה?\". לאולפן: התראה שעה לפני. אם אין לך גישה ליומן, צור לי קובץ יומן (.ics) עם כל האירועים וההתראות האלה, כדי שאלחץ עליו ואוסיף הכל ליומן בפעם אחת.",
 "אם זה אפשרי אצלך, שמור את ההוראות האלה לשיחות הבאות. עכשיו שאל אותי מה ההופעות שלי."].join("\n");
 document.getElementById("aiBtn").onclick=function(){var st=document.getElementById("aiSt");
  try{navigator.clipboard.writeText(AI_PROMPT).then(function(){st.textContent="✓ ההוראות הועתקו"},function(){})}catch(x){}

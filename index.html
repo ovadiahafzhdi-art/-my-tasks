@@ -238,6 +238,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <div class="row" style="margin-bottom:10px"><button class="go" id="aiBtn" type="button">🤖 פתח את Claude עם ההוראות</button><span id="aiSt" role="status"></span></div>
 <textarea id="pIn" placeholder="16.11.2026 | הופעה | אשדוד | עלייה 19:00 | מוכן 18:00 | יציאה 16:30 | נסיעה 90" aria-label="לוז להדבקה"></textarea>
 <div class="row"><button class="go" id="pBtn" type="button">הוסף ללוז</button><span id="pSt" role="status"></span></div></details></div>
+<div class="row" style="margin:6px 0 12px"><button class="go" id="aiCal" type="button" style="width:100%">🤖 Claude יוסיף את ההופעות ליומן עם התראות</button></div><div class="fhint" id="aiCalSt"></div>
 <div id="evList"></div><p class="empty" id="evEmpty">אין הופעות קרובות. הוסף הופעה בטופס למעלה.</p>
 </section>
 <section id="freeView" hidden>
@@ -267,7 +268,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <button type="button" class="bkbtn" id="cLogin">☁️ התחבר / צור חשבון</button>
 <div class="fhint" id="cErr" role="alert"></div>
 </div>
-<div class="fhint" style="text-align:center;opacity:.5;font-size:12px;margin-top:14px">גרסה 2026-11-15.9</div>
+<div class="fhint" style="text-align:center;opacity:.5;font-size:12px;margin-top:14px">גרסה 2026-11-15.10</div>
 <div style="text-align:center"><button type="button" id="cOut" hidden style="background:none;border:0;color:inherit;opacity:.6;text-decoration:underline;font-size:13px;margin-top:6px">התנתק מהענן</button></div>
 </main>
 <div class="cv" id="bk" hidden><div class="cvbar"><button type="button" id="bkBack">חזרה</button></div>
@@ -480,7 +481,7 @@ function drawList(stuMode,boxId,emptyId,today){
    var wz=el("div","wz"),nav=el("a","wabtn wzb","🚗 נווט ב-Waze");nav.href=e.waze||("https://waze.com/ul?q="+encodeURIComponent(e.venue||"")+"&navigate=yes");if(!e.waze)nav.onclick=function(ev){ev.preventDefault();openApp("waze://?q="+encodeURIComponent(e.venue||"")+"&navigate=yes","https://waze.com/ul?q="+encodeURIComponent(e.venue||"")+"&navigate=yes")};nav.target="_blank";nav.rel="noopener";wz.appendChild(nav);
    var ed=el("button","tg",e.waze?"שנה מיקום":"📍 הדבק קישור מיקום");ed.type="button";
    ed.onclick=function(){var bx=el("div","pr2"),inp=document.createElement("input");inp.type="text";inp.dir="ltr";inp.placeholder="הדבק כאן קישור מ-Waze";inp.value=e.waze||"";var sv=el("button","go","שמור");sv.type="button";sv.onclick=function(){var mm=inp.value.match(/https?:\/\/\S+/);e.waze=mm?mm[0]:"";saveEv();drawEvents()};bx.appendChild(inp);bx.appendChild(sv);ed.replaceWith(bx);inp.focus()};
-   wz.appendChild(ed);if(!e.waze)wz.appendChild(el("span","evl","(כרגע לפי שם המקום)"));c.appendChild(wz);c.appendChild(calBtn(e))}
+   wz.appendChild(ed);if(!e.waze)wz.appendChild(el("span","evl","(כרגע לפי שם המקום)"));c.appendChild(wz);c.appendChild(calBtn(e));var ab=el("button","tg","🤖 Claude יוסיף ליומן");ab.type="button";ab.onclick=function(){aiCalendar([e])};c.appendChild(ab)}
   var x=el("button","x","×");x.setAttribute("aria-label","מחק אירוע");
   x.onclick=function(){evs=evs.filter(function(o){return o!==e});saveEv();drawEvents();fillSlots()};c.appendChild(x);
   box.appendChild(c)})}
@@ -749,7 +750,7 @@ function shareIcs(s,name){
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/calendar"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
 
 /* ---- עדכון אוטומטי לגרסה חדשה ---- */
-var APP_VER="2026-11-15.9";
+var APP_VER="2026-11-15.10";
 function checkUpdate(){try{fetch(location.pathname+"?u="+Date.now(),{cache:"no-store"}).then(function(r){return r.text()}).then(function(t){var m=t.match(/var APP_VER="([^"]+)"/);if(m&&m[1]!==APP_VER&&!document.getElementById("updBar")){var b=el("button","go","🔄 יש גרסה חדשה לאפליקציה – לחץ לעדכון");b.id="updBar";b.type="button";b.style.cssText="position:fixed;bottom:16px;left:16px;right:16px;z-index:999;padding:14px";b.onclick=function(){location.replace(location.pathname+"?v="+m[1])};document.body.appendChild(b)}}).catch(function(){})}catch(e){}}
 setTimeout(checkUpdate,3000);document.addEventListener("visibilitychange",function(){if(!document.hidden)checkUpdate()});
 
@@ -760,6 +761,21 @@ function openApp(appUrl,webUrl){var gone=false,t;
  window.addEventListener("blur",bye,{once:true});window.addEventListener("pagehide",bye,{once:true});
  t=setTimeout(function(){if(!gone&&!document.hidden){var w=window.open(webUrl,"_blank","noopener");if(!w)location.href=webUrl}},1600);
  location.href=appUrl}
+
+/* ---- Claude מוסיף ליומן ---- */
+function evLine(e){var p=e.date.split("-");return p[2]+"."+p[1]+"."+p[0]+" | "+(e.type==="studio"?"אולפן":"הופעה")+" | "+(e.venue||"")+(e.leave?" | יציאה "+e.leave:"")+(e.ready?" | מוכן "+e.ready:"")+(e.stage?" | עלייה לבמה "+e.stage:"")+(e.start?" | שעות "+e.start+(e.end?"-"+e.end:""):"")}
+function aiCalendar(list){var st=document.getElementById("aiCalSt");
+ if(!list.length){if(st)st.textContent="אין הופעות קרובות להוספה. הוסף הופעה קודם.";return}
+ var txt=["הוסף בבקשה ליומן שלי את האירועים האלה, עם התראות:",""].concat(list.map(evLine)).concat(["",
+ "לכל הופעה: אירוע בשם \"🎤 הופעה - שם האולם\", משעת היציאה ועד 4 שעות אחרי העלייה לבמה, המיקום הוא שם האולם.",
+ "התראה 30 דקות לפני שעת היציאה, ועוד התראה בסוף האירוע: \"ההופעה שולמה?\".",
+ "לאולפן: אירוע בשעות שכתובות, עם התראה שעה לפני.",
+ "אם יש לך גישה ליומן שלי, הוסף את האירועים ישירות. אם אין, צור לי קובץ יומן (.ics) אחד עם כל האירועים וההתראות, כדי שאלחץ עליו ואוסיף הכל בפעם אחת."]).join("\n");
+ try{navigator.clipboard.writeText(txt)}catch(x){}
+ if(st)st.textContent="✓ הבקשה הועתקה ו-Claude נפתח. אם היא לא מופיעה שם, הדבק ושלח.";
+ var q=encodeURIComponent(txt);openApp("claude://claude.ai/new?q="+q,"https://claude.ai/new?q="+q)}
+document.getElementById("aiCal").onclick=function(){var n=new Date(),today=n.getFullYear()+"-"+pad(n.getMonth()+1)+"-"+pad(n.getDate());
+ aiCalendar(evs.filter(function(e){return e.date>=today&&(e.type!=="studio"||e.start)}).sort(function(a,b){return (a.date+(a.stage||a.start||"")).localeCompare(b.date+(b.stage||b.start||""))}))};
 
 /* ---- הוראות ל-Claude ---- */
 var AI_PROMPT=["אני משתמש באפליקציה \"המשימות שלי\" לניהול הופעות. מעכשיו, בכל פעם שאשלח לך הופעות (תאריך, אולם ושעת עלייה לבמה), סדר לי את הלו״ז כך:",

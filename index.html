@@ -268,7 +268,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <button type="button" class="bkbtn" id="cLogin">☁️ התחבר / צור חשבון</button>
 <div class="fhint" id="cErr" role="alert"></div>
 </div>
-<div class="fhint" style="text-align:center;opacity:.5;font-size:12px;margin-top:14px">גרסה 2026-11-15.10</div>
+<div class="fhint" style="text-align:center;opacity:.5;font-size:12px;margin-top:14px">גרסה 2026-11-16.1</div>
 <div style="text-align:center"><button type="button" id="cOut" hidden style="background:none;border:0;color:inherit;opacity:.6;text-decoration:underline;font-size:13px;margin-top:6px">התנתק מהענן</button></div>
 </main>
 <div class="cv" id="bk" hidden><div class="cvbar"><button type="button" id="bkBack">חזרה</button></div>
@@ -278,6 +278,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <div class="cv" id="stv" hidden><div class="cvbar"><button type="button" id="stBack">חזרה</button></div>
 <div class="sth">ברוך הבא לאולפן 🎹</div>
 <div id="stDay"></div><div id="stFocus"></div><div id="stList"></div></div>
+<div class="cv" id="docv" hidden><div class="cvbar"><button type="button" id="docBack">✓ שמור וחזור</button></div><h2 id="docTitle" style="margin:4px 0 2px"></h2><div id="docSub" style="color:var(--mute);font-size:14px;margin-bottom:10px"></div><textarea id="docTa" style="width:100%;min-height:70vh;font:inherit;font-size:17px;line-height:1.8;padding:16px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);resize:vertical"></textarea></div>
 <div class="cv" id="cv" hidden><div class="cvbar"><button type="button" id="cvBack">חזרה</button><button type="button" id="cvPrint">🖨 הדפס / שמור PDF</button><button type="button" id="cvCopy">העתק כטקסט</button></div>
 <label class="cvme">השם שלך בחוזה<input type="text" id="cvMe" autocomplete="off"></label>
 <div id="cvSt" role="status"></div>
@@ -341,12 +342,14 @@ document.getElementById("cvCopy").onclick=async function(){
  try{await navigator.clipboard.writeText(s);st.textContent="ההסכם הועתק. אפשר להדביק בוואטסאפ ולשלוח ללקוח."}
  catch(e){tx.hidden=false;tx.focus();tx.select();st.textContent="העתק את הטקסט מהתיבה שמתחת (לחיצה ארוכה, ואז העתק)."}};
 document.getElementById("cvPrint").onclick=function(){var st=document.getElementById("cvSt");try{window.print()}catch(e){st.textContent="ההדפסה לא נפתחה כאן. נסה דרך תפריט השיתוף של הדפדפן ← הדפסה."}};
-function panel(t,sb){
+function grow(i){i.style.height="auto";i.style.height=Math.max(170,i.scrollHeight+4)+"px"}
+function panel(t,sb,nameEl){
  var d=el("div","det");
- function f(lab,key,ph,mode,ltr,full){var l=document.createElement("label");if(full)l.className="full";l.appendChild(document.createTextNode(lab));var i=document.createElement(mode==="area"?"textarea":"input");if(mode==="area")i.rows=7;else i.type="text";i.value=t[key]||"";i.placeholder=ph||"";if(mode&&mode!=="area")i.inputMode=mode;if(ltr)i.dir="ltr";i.setAttribute("autocomplete","off");i.oninput=function(){t[key]=i.value;save();refresh()};l.appendChild(i);d.appendChild(l)}
+ var nmI=f("שם המשימה","text","שם המשימה",null,false,true);nmI.onblur=function(){if(!nmI.value.trim()){t.text=t.text||"משימה";nmI.value=t.text;if(nameEl)nameEl.textContent=t.text;save()}};
+ function f(lab,key,ph,mode,ltr,full){var l=document.createElement("label");if(full)l.className="full";l.appendChild(document.createTextNode(lab));var i=document.createElement(mode==="area"?"textarea":"input");if(mode==="area")i.rows=7;else i.type="text";i.value=t[key]||"";i.placeholder=ph||"";if(mode&&mode!=="area")i.inputMode=mode;if(ltr)i.dir="ltr";i.setAttribute("autocomplete","off");i.oninput=function(){t[key]=i.value;if(mode==="area")grow(i);if(key==="text"&&nameEl)nameEl.textContent=i.value;save();refresh()};l.appendChild(i);d.appendChild(l);if(mode==="area")setTimeout(function(){grow(i)},0);return i}
  var dl=document.createElement("label");dl.appendChild(document.createTextNode("תאריך יעד לסיום"));var di=document.createElement("input");di.type="date";di.value=t.due||"";di.onchange=function(){t.due=di.value;save();refresh()};dl.appendChild(di);d.appendChild(dl);
  var pl2=document.createElement("label");pl2.appendChild(document.createTextNode("התקדמות (%)"));var pi2=document.createElement("input");pi2.type="number";pi2.min=0;pi2.max=100;pi2.inputMode="numeric";pi2.dir="ltr";pi2.value=num(t.prog)||"";pi2.placeholder="0";pi2.oninput=function(){t.prog=Math.min(100,Math.max(0,num(pi2.value)));save();refresh()};pl2.appendChild(pi2);d.appendChild(pl2);
- f("שם לקוח","c","");f("טלפון","ph","050-0000000","tel",true);f("שיר / מחרוזת (פתק מפורט)","song","כתוב כאן מה צריך לעשות במחרוזת: סדר השירים, מעברים, סולמות, הערות...","area",false,true);f("סולם","key","");f("מה הלקוח מקבל","gets","",null,false,true);f("סכום סגירה (₪)","tot","0","decimal",true);f("מקדמה ששולמה (₪)","adv","0","decimal",true);
+ f("שם לקוח","c","");f("טלפון","ph","050-0000000","tel",true);f("שיר / מחרוזת (פתק מפורט)","song","כתוב כאן מה צריך לעשות במחרוזת: סדר השירים, מעברים, סולמות, הערות...","area",false,true);f("סולם","key","");var gI=f("מה הלקוח מקבל (מסמך)","gets","פרט כאן כל מה שהלקוח מקבל: שירים, עיבודים, קבצים, מספר תיקונים, זמני מסירה...","area",false,true);gI.rows=10;var gB=el("button","tg","⤢ פתח כמסמך במסך מלא");gB.type="button";gB.style.marginTop="6px";gB.onclick=function(){openDoc(t,"gets","מה הלקוח מקבל",function(){gI.value=t.gets||"";grow(gI);refresh()})};gI.parentNode.appendChild(gB);f("סכום סגירה (₪)","tot","0","decimal",true);f("מקדמה ששולמה (₪)","adv","0","decimal",true);
  var pw=el("div","pays full");d.appendChild(pw);
  pw.appendChild(el("span","ph","תשלומים נוספים (מתעדכן מיד)"));
  var pl=el("div","");pw.appendChild(pl);
@@ -391,7 +394,7 @@ function render(){
   var li=el("li",(t.done?"done ":"")+"p"+(t.p||2));
   var lb=document.createElement("label");var cb=document.createElement("input");cb.type="checkbox";cb.checked=t.done;
   cb.onchange=function(){t.done=cb.checked;save();render()};
-  lb.appendChild(cb);lb.appendChild(el("span","",t.text));li.appendChild(lb);
+  lb.appendChild(cb);var nmS=el("span","",t.text);lb.appendChild(nmS);li.appendChild(lb);
   var pb=el("button","pdot");pb.style.background="var(--p"+(t.p||2)+")";pb.setAttribute("aria-label","שנה חשיבות");
   pb.onclick=function(){t.p=(t.p||2)%3+1;save();render()};li.appendChild(pb);
   var tg=el("button","tg",opened.has(t)?"סגור":"פרטים");
@@ -399,7 +402,7 @@ function render(){
   var x=el("button","x","×");x.setAttribute("aria-label","מחק משימה");
   x.onclick=function(){c.tasks=c.tasks.filter(function(k){return k!==t});save();render()};li.appendChild(x);
   var sb=el("div","sub",subText(t));sb.hidden=!subText(t);li.appendChild(sb);
-  if(opened.has(t))li.appendChild(panel(t,sb));
+  if(opened.has(t))li.appendChild(panel(t,sb,nmS));
   ul.appendChild(li)});
 }
 var prio=2;
@@ -656,18 +659,20 @@ function scheduleSync(){if(!cloud)return;cst("☁️ שומר בענן...");clea
 async function pushCloud(){if(!cloud||!FDB)return;if(cBusy){cAgain=true;return}cBusy=true;var merged=null;
  try{await FDB.runTransaction(function(tx){return tx.get(cloud).then(function(s){var mine=localData();merged=s.exists?mergeData(mine,s.data()):mine;
    var out=plain(merged);out.at=Date.now();out.dev=DEV;tx.set(cloud,out)})});
-  if(merged&&sig(merged)!==sig(localData()))applyMerged(merged);
+  if(merged){var m2=mergeData(localData(),merged);if(sig(m2)!==sig(localData()))queueRemote2(m2)}
   backupMaybe(merged);cst("☁️ מגובה בענן ✓")}
  catch(e){var c=e&&e.code;if(c==="unavailable"||c==="aborted"){cst("☁️ מנסה שוב...");setTimeout(pushCloud,2000+Math.random()*2000)}else cst("⚠️ לא הצלחתי לשמור בענן. הנתונים שמורים במכשיר.")}
  cBusy=false;if(cAgain){cAgain=false;pushCloud()}}
 function backupMaybe(d){var now=Date.now();if(!d||now-lastBk<3600e3)return;lastBk=now;try{var dt=new Date(),k=dt.getFullYear()+pad(dt.getMonth()+1)+pad(dt.getDate())+"-"+pad(dt.getHours());var b=plain(d);b.at=now;b.dev=DEV;cloud.parent.doc("bk-"+k).set(b).catch(function(){})}catch(e){}}
-function editing(){var a=document.activeElement;return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)}
+function editing(){var a=document.activeElement;if(DOCOPEN)return true;return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)}
+var DOCOPEN=false;
 function queueRemote(d){if(editing()){pendingRemote=d;return}onRemote(d)}
+function queueRemote2(m){if(editing()){pendingRemote=pendingRemote?mergeData(m,pendingRemote):m;return}applyMerged(m)}
 document.addEventListener("focusout",function(){setTimeout(function(){if(pendingRemote&&!editing()){var d=pendingRemote;pendingRemote=null;onRemote(d)}},300)});
 function onRemote(d){if(!d||!d.tasks)return;stampAll();var m=mergeData(localData(),d);if(sig(m)!==sig(localData()))applyMerged(m);DEL=m.del;persist();
  if(sig(m)!==sig({tasks:d.tasks,events:d.events||[]})||JSON.stringify(m.del)!==JSON.stringify(mergeDel(d.del,{})))scheduleSync();else cst("☁️ מסונכרן בענן ✓")}
-function applyMerged(m){var c=state.cur;state=plain(m.tasks);if(!state.lists.some(function(l){return l.id===c}))c=state.lists[0].id;state.cur=c;evs=plain(m.events||[]);DEL=m.del||DEL;
- snapPrev();persist();opened=new Set();focusT=null;render();drawEvents();fillSlots();
+function applyMerged(m){var openIds={};opened.forEach(function(t){if(t&&t.id)openIds[t.id]=1});var c=state.cur;state=plain(m.tasks);if(!state.lists.some(function(l){return l.id===c}))c=state.lists[0].id;state.cur=c;evs=plain(m.events||[]);DEL=m.del||DEL;
+ snapPrev();persist();opened=new Set();state.lists.forEach(function(l){l.tasks.forEach(function(t){if(openIds[t.id])opened.add(t)})});focusT=null;render();drawEvents();fillSlots();
  if(!document.getElementById("freeView").hidden)drawFree();if(!document.getElementById("stv").hidden)drawStudio();cst("☁️ עודכן מהענן ✓")}
 ensureIds();snapPrev();persist();
 (function(){
@@ -724,6 +729,13 @@ ensureIds();snapPrev();persist();
   function(){clearTimeout(tmr);cloud=null;cst("⚠️ החיבור לענן נותק. הנתונים שמורים במכשיר.")});
  });
 })();
+/* ---- עורך מסמך במסך מלא ---- */
+var docCb=null;
+function openDoc(t,key,title,cb){DOCOPEN=true;docCb=cb;var v=document.getElementById("docv"),ta=document.getElementById("docTa");
+ document.getElementById("docTitle").textContent=title;document.getElementById("docSub").textContent=(t.text||"")+(t.c?" · "+t.c:"");
+ ta.value=t[key]||"";ta.oninput=function(){t[key]=ta.value;save()};v.hidden=false;v.scrollTop=0;setTimeout(function(){ta.focus()},50)}
+document.getElementById("docBack").onclick=function(){document.getElementById("docv").hidden=true;DOCOPEN=false;if(docCb)docCb();docCb=null;
+ setTimeout(function(){if(pendingRemote&&!editing()){var d=pendingRemote;pendingRemote=null;onRemote(d)}},300)};
 /* ---- תזכורות ביומן (.ics) ---- */
 function icsT(d,t){return d.replace(/-/g,"")+"T"+t.replace(":","")+"00"}
 function icsEsc(s){return String(s||"").replace(/[\;,]/g,function(m){return"\\"+m}).replace(/\n/g,"\\n")}
@@ -750,7 +762,7 @@ function shareIcs(s,name){
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/calendar"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
 
 /* ---- עדכון אוטומטי לגרסה חדשה ---- */
-var APP_VER="2026-11-15.10";
+var APP_VER="2026-11-16.1";
 function checkUpdate(){try{fetch(location.pathname+"?u="+Date.now(),{cache:"no-store"}).then(function(r){return r.text()}).then(function(t){var m=t.match(/var APP_VER="([^"]+)"/);if(m&&m[1]!==APP_VER&&!document.getElementById("updBar")){var b=el("button","go","🔄 יש גרסה חדשה לאפליקציה – לחץ לעדכון");b.id="updBar";b.type="button";b.style.cssText="position:fixed;bottom:16px;left:16px;right:16px;z-index:999;padding:14px";b.onclick=function(){location.replace(location.pathname+"?v="+m[1])};document.body.appendChild(b)}}).catch(function(){})}catch(e){}}
 setTimeout(checkUpdate,3000);document.addEventListener("visibilitychange",function(){if(!document.hidden)checkUpdate()});
 

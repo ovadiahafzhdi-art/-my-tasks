@@ -239,6 +239,15 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 </section>
 <button class="bkbtn" id="bkOpen" type="button">🔒 גיבוי ושחזור</button>
 <div class="fhint" id="cloudSt" role="status" style="text-align:center;margin-top:10px">💾 נשמר במכשיר</div>
+<div id="cloudBox" hidden style="max-width:320px;margin:10px auto;display:flex;flex-direction:column;gap:8px;text-align:center">
+<div class="fhint">כדי לסנכרן בין הטלפון, הנייד והאולפן, התחבר עם אותו מייל וסיסמה בכל מכשיר.</div>
+<input type="email" id="cEmail" placeholder="מייל" autocomplete="username" dir="ltr" style="padding:10px;border-radius:10px;border:1px solid #ccc;font-size:16px">
+<input type="password" id="cPass" placeholder="סיסמה (לפחות 6 תווים)" autocomplete="current-password" dir="ltr" style="padding:10px;border-radius:10px;border:1px solid #ccc;font-size:16px">
+<button type="button" class="bkbtn" id="cLogin">☁️ התחבר</button>
+<button type="button" class="bkbtn" id="cSignup" style="opacity:.85">פעם ראשונה? צור חשבון</button>
+<div class="fhint" id="cErr" role="alert"></div>
+</div>
+<div style="text-align:center"><button type="button" id="cOut" hidden style="background:none;border:0;color:inherit;opacity:.6;text-decoration:underline;font-size:13px;margin-top:6px">התנתק מהענן</button></div>
 </main>
 <div class="cv" id="bk" hidden><div class="cvbar"><button type="button" id="bkBack">חזרה</button></div>
 <div class="sth">גיבוי ושחזור</div>
@@ -252,6 +261,9 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <div id="cvSt" role="status"></div>
 <textarea id="cvTxt" readonly hidden></textarea>
 <div id="cvDoc"></div></div>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 var KEY="tasks-v1",EKEY="events-v1";
 var state={lists:[{id:"general",name:"כללי",tasks:[]},{id:"studio",name:"אולפן",tasks:[]}],cur:"general"};
@@ -602,15 +614,37 @@ function applyRemote(d){
  opened=new Set();focusT=null;render();drawEvents();fillSlots();
  if(!document.getElementById("freeView").hidden)drawFree();if(!document.getElementById("stv").hidden)drawStudio();
  cst("☁️ עודכן מהענן ✓")}
-(async function(){
- if(!window.claude||!window.claude.use){cst("💾 נשמר במכשיר בלבד");return}
+(function(){
+ var FB={apiKey:"AIzaSyBrswKruObHsT1kUFy9k2lw0PtGtTOPxUU",authDomain:"my-tasks-ac0ed.firebaseapp.com",projectId:"my-tasks-ac0ed",storageBucket:"my-tasks-ac0ed.firebasestorage.app",messagingSenderId:"162476834195",appId:"1:162476834195:web:b83fd4d9edd7eebc3b3c66"};
+ if(!window.firebase||!firebase.initializeApp){cst("💾 נשמר במכשיר בלבד (אין חיבור לאינטרנט)");return}
+ firebase.initializeApp(FB);
+ var auth=firebase.auth(),fdb=firebase.firestore(),unsub=null;
+ var box=document.getElementById("cloudBox"),out=document.getElementById("cOut"),err=document.getElementById("cErr");
+ function msg(e){var c=(e&&e.code)||"";
+  if(/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c))return"מייל או סיסמה לא נכונים. אם זו הפעם הראשונה, לחץ \"צור חשבון\".";
+  if(/email-already-in-use/.test(c))return"כבר יש חשבון עם המייל הזה. לחץ \"התחבר\".";
+  if(/weak-password/.test(c))return"הסיסמה קצרה מדי, צריך לפחות 6 תווים.";
+  if(/invalid-email/.test(c))return"המייל לא תקין.";
+  if(/network/.test(c))return"אין חיבור לאינטרנט.";
+  if(/too-many/.test(c))return"יותר מדי ניסיונות. נסה שוב בעוד כמה דקות.";
+  return"משהו השתבש ("+c+")"}
+ function go(create){var em=document.getElementById("cEmail").value.trim(),pw=document.getElementById("cPass").value;
+  if(!em||!pw){err.textContent="צריך למלא מייל וסיסמה";return}
+  err.textContent="מתחבר...";
+  (create?auth.createUserWithEmailAndPassword(em,pw):auth.signInWithEmailAndPassword(em,pw)).then(function(){err.textContent="";document.getElementById("cPass").value=""}).catch(function(e){err.textContent=msg(e)})}
+ document.getElementById("cLogin").onclick=function(){go(false)};
+ document.getElementById("cSignup").onclick=function(){go(true)};
+ document.getElementById("cPass").addEventListener("keydown",function(e){if(e.key==="Enter")go(false)});
+ out.onclick=function(){if(out.dataset.arm!=="1"){out.dataset.arm="1";out.textContent="לחץ שוב כדי להתנתק";setTimeout(function(){out.dataset.arm="";out.textContent="התנתק מהענן"},4000);return}out.dataset.arm="";auth.signOut()};
  cst("☁️ מתחבר לענן...");
- try{
-  var db=await window.claude.use("db"),us=await window.claude.use("user"),id=us?await us.id():null;
-  if(!db||!id){cst("💾 נשמר במכשיר בלבד. כדי לגבות לענן, פתח את הדף כשאתה מחובר ל-Claude.");return}
-  var ref=db.doc("data/users/"+id+"/app");
+ auth.onAuthStateChanged(function(u){
+  if(unsub){unsub();unsub=null}cloud=null;
+  if(!u){box.hidden=false;out.hidden=true;cst("💾 נשמר במכשיר בלבד. התחבר כדי לסנכרן:");return}
+  box.hidden=true;out.hidden=false;out.textContent="התנתק מהענן ("+(u.email||"")+")";
+  cst("☁️ מתחבר לענן...");
+  var ref=fdb.collection("users").doc(u.uid).collection("app").doc("data");
   var tmr=setTimeout(function(){cst("☁️ הענן לא זמין כרגע. הנתונים נשמרים במכשיר.")},10000);
-  ref.onSnapshot(function(s){
+  unsub=ref.onSnapshot({includeMetadataChanges:false},function(s){
    if(s.metadata.fromCache||s.metadata.hasPendingWrites)return;
    clearTimeout(tmr);
    var firstTime=!cloud;cloud=ref;
@@ -618,9 +652,9 @@ function applyRemote(d){
    var d=s.data(),at=+d.at||0;
    if(d.dev!==DEV&&at>localAt)queueRemote(d);
    else if(at<localAt)scheduleSync();
-   else cst("☁️ מגובה בענן ✓")},
+   else cst("☁️ מסונכרן בענן ✓")},
   function(){clearTimeout(tmr);cloud=null;cst("⚠️ החיבור לענן נותק. הנתונים שמורים במכשיר.")});
- }catch(e){cst("💾 נשמר במכשיר בלבד")}
+ });
 })();
 drawEvents();
 fillSlots();

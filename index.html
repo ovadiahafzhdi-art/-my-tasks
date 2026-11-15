@@ -121,9 +121,10 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 #bk .paste{margin-bottom:14px}
 .gform{background:linear-gradient(180deg,#1c1914,#16140f);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .ggrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
-.ggrid label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
+.gform,.gform *{box-sizing:border-box}
+.ggrid label{min-width:0;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
 .ggrid .gwide{grid-column:1/-1}
-.ggrid input{font:inherit;font-size:16px;padding:9px;border-radius:10px;border:1px solid var(--line);background:#0f0e0b;color:inherit;min-width:0}
+.ggrid input{width:100%;max-width:100%;-webkit-appearance:none;appearance:none;font:inherit;font-size:16px;padding:9px;border-radius:10px;border:1px solid var(--line);background:#0f0e0b;color:inherit;min-width:0}
 .pastebox summary{cursor:pointer;color:var(--mute);margin:6px 0}
 .frng{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
 .frng .tab{padding:9px 4px;text-align:center;font-size:15px}
@@ -226,16 +227,18 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <label>תאריך<input type="date" id="gDate"></label>
 <label>שעת עלייה לבמה<input type="time" id="gStage" value="20:00"></label>
 <label class="gwide">שם האולם<input type="text" id="gHall" placeholder="למשל: אולמי שרון" autocomplete="off"></label>
-<label>זמן נסיעה (דקות, לפי Waze)<input type="number" id="gDrive" inputmode="numeric" min="0" placeholder="30"></label>
-<label>מוכן כמה לפני העלייה (דקות)<input type="number" id="gPrep" inputmode="numeric" min="0" value="60"></label>
+<label>נסיעה לפי Waze (דק׳)<input type="number" id="gDrive" inputmode="numeric" min="0" placeholder="למשל 30"></label>
+<label>מוכן לפני העלייה (דק׳)<input type="number" id="gPrep" inputmode="numeric" min="0" value="60"></label>
 </div>
 <div class="fhint" id="gCalc"></div>
 <div class="row"><button class="go" id="gAdd" type="button">הוסף הופעה ללוז</button><span id="gSt" role="status"></span></div>
 </div>
-<details class="pastebox"><summary>או הדבק לו״ז מוכן (למשל מ-Claude)</summary>
+<details class="pastebox"><summary>🤖 או תן ל-Claude לסדר לך את הלו״ז</summary>
+<div class="fhint" style="margin-top:8px">1. לחץ על הכפתור. ההוראות יועתקו ו-Claude ייפתח.<br>2. אם ההוראות לא מופיעות שם, הדבק אותן (לחיצה ארוכה ← הדבק).<br>3. שלח ל-Claude את ההופעות שלך כמו שהן, הוא ישאל על זמני נסיעה ויחזיר שורות מוכנות.<br>4. העתק את השורות והדבק כאן למטה.</div>
+<div class="row" style="margin-bottom:10px"><button class="go" id="aiBtn" type="button">🤖 פתח את Claude עם ההוראות</button><span id="aiSt" role="status"></span></div>
 <textarea id="pIn" placeholder="16.11.2026 | הופעה | אשדוד | עלייה 19:00 | מוכן 18:00 | יציאה 16:30 | נסיעה 90" aria-label="לוז להדבקה"></textarea>
 <div class="row"><button class="go" id="pBtn" type="button">הוסף ללוז</button><span id="pSt" role="status"></span></div></details></div>
-<div id="evList"></div><p class="empty" id="evEmpty">אין הופעות קרובות. הדבק למעלה את הלוז שקיבלת בשיחה.</p>
+<div id="evList"></div><p class="empty" id="evEmpty">אין הופעות קרובות. הוסף הופעה בטופס למעלה.</p>
 </section>
 <section id="freeView" hidden>
 <div class="frng" id="frng"><button type="button" class="tab" data-n="7" aria-selected="true">שבוע</button><button type="button" class="tab" data-n="14" aria-selected="false">שבועיים</button><button type="button" class="tab" data-n="30" aria-selected="false">חודש</button><button type="button" class="cp" id="fCopy">העתק</button></div>
@@ -683,8 +686,10 @@ function applyRemote(d){
    var firstTime=!cloud;cloud=ref;
    if(!s.exists){if(firstTime){if(!localAt)localAt=Date.now();pushCloud()}return}
    var d=s.data(),at=+d.at||0;
-   if(d.dev!==DEV&&at>localAt)queueRemote(d);
-   else if(at<localAt)scheduleSync();
+   var lc=0;state.lists.forEach(function(l){lc+=l.tasks.length});lc+=evs.length;
+   var rc=0;try{(d.tasks.lists||[]).forEach(function(l){rc+=(l.tasks||[]).length});rc+=(d.events||[]).length}catch(x){}
+   if(d.dev!==DEV&&(at>localAt||(lc===0&&rc>0)))queueRemote(d);
+   else if(at<localAt&&!(lc===0&&rc>0))scheduleSync();
    else cst("☁️ מסונכרן בענן ✓")},
   function(){clearTimeout(tmr);cloud=null;cst("⚠️ החיבור לענן נותק. הנתונים שמורים במכשיר.")});
  });
@@ -710,6 +715,19 @@ function calBtn(e){var b=el("button","tg","📅 הוסף ליומן עם תזכ�
   if(/iPhone|iPad/i.test(navigator.userAgent)){location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(s);return}
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/calendar"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)};
  return b}
+
+/* ---- הוראות ל-Claude ---- */
+var AI_PROMPT=["אני משתמש באפליקציה \"המשימות שלי\" לניהול הופעות. מעכשיו, בכל פעם שאשלח לך הופעות (תאריך, אולם ושעת עלייה לבמה), סדר לי את הלו״ז כך:",
+"1. לכל הופעה שאל אותי כמה דקות נסיעה יש מהבית לאולם לפי Waze. שאלה אחת בכל פעם.",
+"2. שעת מוכן = שעת העלייה לבמה פחות 60 דקות. שעת יציאה = שעת מוכן פחות זמן הנסיעה.",
+"3. בסוף תן לי את כל ההופעות בבלוק קוד אחד להעתקה, שורה לכל הופעה, בדיוק בפורמט הזה (בלי יום בשבוע):",
+"DD.MM.YYYY | הופעה | שם האולם | עלייה HH:MM | מוכן HH:MM | יציאה HH:MM | נסיעה דקות",
+"לדוגמה: 17.11.2026 | הופעה | אולמי שרון | עלייה 20:00 | מוכן 19:00 | יציאה 18:45 | נסיעה 15",
+"לזמני אולפן השתמש בפורמט: DD.MM.YYYY | אולפן | שם הלקוח | שעות HH:MM-HH:MM",
+"אם זה אפשרי אצלך, שמור את ההוראות האלה לשיחות הבאות. עכשיו שאל אותי מה ההופעות שלי."].join("\n");
+document.getElementById("aiBtn").onclick=function(){var st=document.getElementById("aiSt");
+ try{navigator.clipboard.writeText(AI_PROMPT).then(function(){st.textContent="✓ ההוראות הועתקו"},function(){})}catch(x){}
+ window.open("https://claude.ai/new?q="+encodeURIComponent(AI_PROMPT),"_blank","noopener")};
 
 /* ---- שם והוספת הופעה ---- */
 function drawMe(){var n=document.getElementById("meName");if(!n)return;var v=state.me||"";n.textContent=v||"✎ לחץ כאן ורשום את שמך";n.dir=/[a-zA-Z]/.test(v)&&!/[֐-׿]/.test(v)?"ltr":"rtl";n.style.opacity=v?"":".6";n.style.fontSize=v?"":"22px"}

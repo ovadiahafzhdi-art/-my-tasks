@@ -241,10 +241,10 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <div class="fhint" id="cloudSt" role="status" style="text-align:center;margin-top:10px">💾 נשמר במכשיר</div>
 <div id="cloudBox" hidden style="max-width:320px;margin:10px auto;display:flex;flex-direction:column;gap:8px;text-align:center">
 <div class="fhint">כדי לסנכרן בין הטלפון, הנייד והאולפן, התחבר עם אותו מייל וסיסמה בכל מכשיר.</div>
-<input type="email" id="cEmail" placeholder="מייל" autocomplete="username" dir="ltr" style="padding:10px;border-radius:10px;border:1px solid #ccc;font-size:16px">
-<input type="password" id="cPass" placeholder="סיסמה (לפחות 6 תווים)" autocomplete="current-password" dir="ltr" style="padding:10px;border-radius:10px;border:1px solid #ccc;font-size:16px">
-<button type="button" class="bkbtn" id="cLogin">☁️ התחבר</button>
-<button type="button" class="bkbtn" id="cSignup" style="opacity:.85">פעם ראשונה? צור חשבון</button>
+<input type="email" id="cEmail" placeholder="מייל" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" dir="ltr" style="padding:10px;border-radius:10px;border:1px solid #ccc;font-size:16px">
+<input type="password" id="cPass" placeholder="סיסמה (לפחות 6 תווים, באנגלית/מספרים)" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" dir="ltr" style="padding:10px;border-radius:10px;border:1px solid #ccc;font-size:16px">
+<label class="fhint" style="display:flex;gap:6px;align-items:center;justify-content:center"><input type="checkbox" id="cShow"> 👁 הצג סיסמה</label>
+<button type="button" class="bkbtn" id="cLogin">☁️ התחבר / צור חשבון</button>
 <div class="fhint" id="cErr" role="alert"></div>
 </div>
 <div style="text-align:center"><button type="button" id="cOut" hidden style="background:none;border:0;color:inherit;opacity:.6;text-decoration:underline;font-size:13px;margin-top:6px">התנתק מהענן</button></div>
@@ -628,13 +628,26 @@ function applyRemote(d){
   if(/network/.test(c))return"אין חיבור לאינטרנט.";
   if(/too-many/.test(c))return"יותר מדי ניסיונות. נסה שוב בעוד כמה דקות.";
   return"משהו השתבש ("+c+")"}
- function go(create){var em=document.getElementById("cEmail").value.trim(),pw=document.getElementById("cPass").value;
+ var busy=false,btn=document.getElementById("cLogin");
+ function done(){busy=false;btn.disabled=false;btn.textContent="☁️ התחבר / צור חשבון"}
+ function go(){if(busy)return;var em=document.getElementById("cEmail").value.trim().toLowerCase(),pw=document.getElementById("cPass").value;
   if(!em||!pw){err.textContent="צריך למלא מייל וסיסמה";return}
-  err.textContent="מתחבר...";
-  (create?auth.createUserWithEmailAndPassword(em,pw):auth.signInWithEmailAndPassword(em,pw)).then(function(){err.textContent="";document.getElementById("cPass").value=""}).catch(function(e){err.textContent=msg(e)})}
- document.getElementById("cLogin").onclick=function(){go(false)};
- document.getElementById("cSignup").onclick=function(){go(true)};
- document.getElementById("cPass").addEventListener("keydown",function(e){if(e.key==="Enter")go(false)});
+  if(pw.length<6){err.textContent="הסיסמה צריכה להיות לפחות 6 תווים";return}
+  if(/[֐-׿]/.test(pw)){err.textContent="יש בסיסמה אותיות בעברית. החלף מקלדת לאנגלית ונסה שוב.";return}
+  busy=true;btn.disabled=true;btn.textContent="מתחבר...";err.textContent="";
+  auth.signInWithEmailAndPassword(em,pw).then(ok).catch(function(e){
+   var c=(e&&e.code)||"";
+   if(/invalid-credential|user-not-found|invalid-login/.test(c)){
+    btn.textContent="יוצר חשבון...";
+    auth.createUserWithEmailAndPassword(em,pw).then(ok).catch(function(e2){
+     var c2=(e2&&e2.code)||"";
+     if(/email-already-in-use/.test(c2))err.textContent="למייל הזה כבר יש חשבון, והסיסמה לא נכונה. נסה שוב (סמן 👁 כדי לראות מה אתה מקליד).";
+     else err.textContent=msg(e2);done()})}
+   else{err.textContent=msg(e);done()}})}
+ function ok(){err.textContent="";document.getElementById("cPass").value="";done()}
+ btn.onclick=go;
+ document.getElementById("cShow").onchange=function(){document.getElementById("cPass").type=this.checked?"text":"password"};
+ document.getElementById("cPass").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();go()}});
  out.onclick=function(){if(out.dataset.arm!=="1"){out.dataset.arm="1";out.textContent="לחץ שוב כדי להתנתק";setTimeout(function(){out.dataset.arm="";out.textContent="התנתק מהענן"},4000);return}out.dataset.arm="";auth.signOut()};
  cst("☁️ מתחבר לענן...");
  auth.onAuthStateChanged(function(u){

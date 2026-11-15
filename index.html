@@ -612,30 +612,58 @@ document.getElementById("bkRestore").onclick=function(){
  state=d.tasks;if(!state.cur)state.cur=state.lists[0].id;evs=Array.isArray(d.events)?d.events:[];save();saveEv();
  document.getElementById("bkIn").value="";render();drawEvents();fillSlots();
  var n=0;state.lists.forEach(function(l){n+=l.tasks.length});st.textContent="✓ שוחזרו "+n+" משימות ו-"+evs.length+" אירועים"+(d.date?" (מגיבוי מ-"+dShort(d.date)+")":"")};
-/* ---- ענן ---- */
-var SKEY="sync-at",DEV=(function(){try{var d=localStorage.getItem("dev-id");if(!d){d="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);localStorage.setItem("dev-id",d)}return d}catch(e){return"d"+Math.random().toString(36).slice(2)}})();
-var localAt=0;try{localAt=+localStorage.getItem(SKEY)||0}catch(e){}
-var cloud=null,cTimer=null,cBusy=false,cAgain=false,pendingRemote=null;
+/* ---- ענן (מיזוג לפי פריט, בלי דריסה) ---- */
+var DEV=(function(){try{var d=localStorage.getItem("dev-id");if(!d){d="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);localStorage.setItem("dev-id",d)}return d}catch(e){return"d"+Math.random().toString(36).slice(2)}})();
+var cloud=null,FDB=null,cTimer=null,cBusy=false,cAgain=false,pendingRemote=null,lastBk=0;
+var DEL={t:{},e:{},l:{}};try{var dr=JSON.parse(localStorage.getItem("del-v1")||"null");if(dr&&dr.t)DEL={t:dr.t||{},e:dr.e||{},l:dr.l||{}}}catch(e){}
 function cst(t){var s=document.getElementById("cloudSt");if(s)s.textContent=t}
-function touch(){localAt=Date.now();try{localStorage.setItem(SKEY,String(localAt))}catch(e){}scheduleSync()}
-function scheduleSync(){if(!cloud)return;cst("☁️ שומר בענן...");clearTimeout(cTimer);cTimer=setTimeout(pushCloud,1200)}
-async function pushCloud(){if(!cloud)return;if(cBusy){cAgain=true;return}cBusy=true;
- try{await cloud.set({tasks:JSON.parse(JSON.stringify(state)),events:JSON.parse(JSON.stringify(evs)),at:localAt,dev:DEV});cst("☁️ מגובה בענן ✓")}
- catch(e){var c=e&&e.code;if(c==="unavailable"){cst("☁️ מנסה שוב...");setTimeout(pushCloud,2000+Math.random()*2000)}else if(c==="quota_exceeded")cst("⚠️ אין מקום בענן. הנתונים שמורים במכשיר.");else cst("⚠️ לא הצלחתי לשמור בענן. הנתונים שמורים במכשיר.")}
+function nid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function core(o){var c={};for(var k in o)if(k!=="u"&&k!=="id")c[k]=o[k];return JSON.stringify(c)}
+var PREV={t:{},e:{},l:{}};
+function snapPrev(){PREV={t:{},e:{},l:{}};state.lists.forEach(function(l){PREV.l[l.id]=l.name;l.tasks.forEach(function(t){PREV.t[t.id]=core(t)})});evs.forEach(function(e){PREV.e[e.id]=core(e)})}
+function ensureIds(){state.lists.forEach(function(l){l.tasks.forEach(function(t){if(!t.id){t.id=nid();if(t.u==null)t.u=0}})});evs.forEach(function(e){if(e.u==null)e.u=0})}
+function stampAll(){var now=Date.now(),seen={t:{},e:{},l:{}};ensureIds();
+ state.lists.forEach(function(l){seen.l[l.id]=1;if(PREV.l[l.id]!==undefined&&PREV.l[l.id]!==l.name)l.u=now;
+  l.tasks.forEach(function(t){seen.t[t.id]=1;var c=core(t);if(PREV.t[t.id]!==c)t.u=now})});
+ evs.forEach(function(e){seen.e[e.id]=1;var c=core(e);if(PREV.e[e.id]!==c)e.u=now});
+ ["t","e","l"].forEach(function(k){for(var id in PREV[k])if(!seen[k][id])DEL[k][id]=now});
+ var cut=now-60*864e5;["t","e","l"].forEach(function(k){for(var id in DEL[k])if(DEL[k][id]<cut||seen[k][id]&&false)delete DEL[k][id]});
+ snapPrev();persist()}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));localStorage.setItem(EKEY,JSON.stringify(evs));localStorage.setItem("del-v1",JSON.stringify(DEL))}catch(e){}}
+function touch(){stampAll();scheduleSync()}
+function mergeDel(a,b){var r={t:{},e:{},l:{}};["t","e","l"].forEach(function(k){[a&&a[k]||{},b&&b[k]||{}].forEach(function(s){for(var id in s)r[k][id]=Math.max(r[k][id]||0,+s[id]||0)})});return r}
+function pick(x,y){if(!x)return y;if(!y)return x;return (+y.u||0)>(+x.u||0)?y:x}
+function alive(it,ts){return !(ts&&ts>=(+it.u||0))}
+function mergeData(A,B){
+ var del=mergeDel(A.del,B.del),la=(A.tasks&&A.tasks.lists)||[],lb=(B.tasks&&B.tasks.lists)||[],order=[],L={};
+ la.concat(lb).forEach(function(l){if(!L[l.id]){L[l.id]={id:l.id,name:l.name,u:+l.u||0,t:{},ord:[]};order.push(l.id)}var M=L[l.id];if((+l.u||0)>M.u){M.name=l.name;M.u=+l.u||0}
+  (l.tasks||[]).forEach(function(t){if(!t.id)return;if(!M.t[t.id])M.ord.push(t.id);M.t[t.id]=pick(M.t[t.id],t)})});
+ var lists=order.filter(function(id){return !del.l[id]||(L[id].u>del.l[id])}).map(function(id){var M=L[id];var o={id:id,name:M.name,tasks:M.ord.map(function(tid){return M.t[tid]}).filter(function(t){return alive(t,del.t[t.id])})};if(M.u)o.u=M.u;return o});
+ if(!lists.length)lists=[{id:"general",name:"כללי",tasks:[]}];
+ var E={},eo=[];((A.events||[]).concat(B.events||[])).forEach(function(e){if(!e||!e.id)return;if(!E[e.id])eo.push(e.id);E[e.id]=pick(E[e.id],e)});
+ var events=eo.map(function(id){return E[id]}).filter(function(e){return alive(e,del.e[e.id])});
+ return{tasks:{lists:lists,cur:(A.tasks&&A.tasks.cur)||lists[0].id},events:events,del:del}}
+function plain(x){return JSON.parse(JSON.stringify(x))}
+function localData(){return plain({tasks:state,events:evs,del:DEL})}
+function sig(d){return JSON.stringify({l:d.tasks.lists,e:d.events})}
+function scheduleSync(){if(!cloud)return;cst("☁️ שומר בענן...");clearTimeout(cTimer);cTimer=setTimeout(pushCloud,1000)}
+async function pushCloud(){if(!cloud||!FDB)return;if(cBusy){cAgain=true;return}cBusy=true;var merged=null;
+ try{await FDB.runTransaction(function(tx){return tx.get(cloud).then(function(s){var mine=localData();merged=s.exists?mergeData(mine,s.data()):mine;
+   var out=plain(merged);out.at=Date.now();out.dev=DEV;tx.set(cloud,out)})});
+  if(merged&&sig(merged)!==sig(localData()))applyMerged(merged);
+  backupMaybe(merged);cst("☁️ מגובה בענן ✓")}
+ catch(e){var c=e&&e.code;if(c==="unavailable"||c==="aborted"){cst("☁️ מנסה שוב...");setTimeout(pushCloud,2000+Math.random()*2000)}else cst("⚠️ לא הצלחתי לשמור בענן. הנתונים שמורים במכשיר.")}
  cBusy=false;if(cAgain){cAgain=false;pushCloud()}}
+function backupMaybe(d){var now=Date.now();if(!d||now-lastBk<3600e3)return;lastBk=now;try{var dt=new Date(),k=dt.getFullYear()+pad(dt.getMonth()+1)+pad(dt.getDate())+"-"+pad(dt.getHours());var b=plain(d);b.at=now;b.dev=DEV;cloud.parent.doc("bk-"+k).set(b).catch(function(){})}catch(e){}}
 function editing(){var a=document.activeElement;return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)}
-function queueRemote(d){if(editing()){pendingRemote=d;return}applyRemote(d)}
-document.addEventListener("focusout",function(){setTimeout(function(){if(pendingRemote&&!editing()){var d=pendingRemote;pendingRemote=null;if((+d.at||0)>localAt)applyRemote(d)}},300)});
-function applyRemote(d){
- if(!d||!d.tasks||!d.tasks.lists||!d.tasks.lists.length)return;
- try{var had=0;state.lists.forEach(function(l){had+=l.tasks.length});if(!+localStorage.getItem(SKEY)&&(had||evs.length))localStorage.setItem("pre-cloud-backup",JSON.stringify({tasks:state,events:evs}))}catch(e){}
- var c=state.cur;state=JSON.parse(JSON.stringify(d.tasks));if(!state.lists.some(function(l){return l.id===c}))c=state.lists[0].id;state.cur=c;
- evs=Array.isArray(d.events)?JSON.parse(JSON.stringify(d.events)):[];
- localAt=+d.at||Date.now();
- try{localStorage.setItem(KEY,JSON.stringify(state));localStorage.setItem(EKEY,JSON.stringify(evs));localStorage.setItem(SKEY,String(localAt))}catch(e){}
- opened=new Set();focusT=null;render();drawEvents();fillSlots();
- if(!document.getElementById("freeView").hidden)drawFree();if(!document.getElementById("stv").hidden)drawStudio();
- cst("☁️ עודכן מהענן ✓")}
+function queueRemote(d){if(editing()){pendingRemote=d;return}onRemote(d)}
+document.addEventListener("focusout",function(){setTimeout(function(){if(pendingRemote&&!editing()){var d=pendingRemote;pendingRemote=null;onRemote(d)}},300)});
+function onRemote(d){if(!d||!d.tasks)return;stampAll();var m=mergeData(localData(),d);if(sig(m)!==sig(localData()))applyMerged(m);DEL=m.del;persist();
+ if(sig(m)!==sig({tasks:d.tasks,events:d.events||[]})||JSON.stringify(m.del)!==JSON.stringify(mergeDel(d.del,{})))scheduleSync();else cst("☁️ מסונכרן בענן ✓")}
+function applyMerged(m){var c=state.cur;state=plain(m.tasks);if(!state.lists.some(function(l){return l.id===c}))c=state.lists[0].id;state.cur=c;evs=plain(m.events||[]);DEL=m.del||DEL;
+ snapPrev();persist();opened=new Set();focusT=null;render();drawEvents();fillSlots();
+ if(!document.getElementById("freeView").hidden)drawFree();if(!document.getElementById("stv").hidden)drawStudio();cst("☁️ עודכן מהענן ✓")}
+ensureIds();snapPrev();persist();
 (function(){
  var FB={apiKey:"AIzaSyBrswKruObHsT1kUFy9k2lw0PtGtTOPxUU",authDomain:"my-tasks-ac0ed.firebaseapp.com",projectId:"my-tasks-ac0ed",storageBucket:"my-tasks-ac0ed.firebasestorage.app",messagingSenderId:"162476834195",appId:"1:162476834195:web:b83fd4d9edd7eebc3b3c66"};
  if(!window.firebase||!firebase.initializeApp){cst("💾 נשמר במכשיר בלבד (אין חיבור לאינטרנט)");return}
@@ -676,21 +704,17 @@ function applyRemote(d){
   if(unsub){unsub();unsub=null}cloud=null;
   if(!u){box.hidden=false;out.hidden=true;cst("💾 נשמר במכשיר בלבד. התחבר כדי לסנכרן:");return}
   box.hidden=true;out.hidden=false;out.textContent="התנתק מהענן ("+(u.email||"")+")";
-  try{var lu=localStorage.getItem("sync-uid");if(lu!==u.uid){var had=0;state.lists.forEach(function(l){had+=l.tasks.length});if(had||evs.length)localStorage.setItem("pre-switch-backup",JSON.stringify({tasks:state,events:evs,uid:lu,at:Date.now()}));localAt=0;localStorage.setItem(SKEY,"0");localStorage.setItem("sync-uid",u.uid)}}catch(x){}
+  try{var lu=localStorage.getItem("sync-uid");if(lu&&lu!==u.uid){localStorage.setItem("pre-switch-backup",JSON.stringify({tasks:state,events:evs,uid:lu,at:Date.now()}));state={lists:[{id:"general",name:"כללי",tasks:[]},{id:"studio",name:"אולפן",tasks:[]}],cur:"general"};evs=[];DEL={t:{},e:{},l:{}};snapPrev();persist();render();drawEvents()}localStorage.setItem("sync-uid",u.uid)}catch(x){}
   cst("☁️ מתחבר לענן...");
   var ref=fdb.collection("users").doc(u.uid).collection("app").doc("data");
   var tmr=setTimeout(function(){cst("☁️ הענן לא זמין כרגע. הנתונים נשמרים במכשיר.")},10000);
+  FDB=fdb;
   unsub=ref.onSnapshot({includeMetadataChanges:false},function(s){
    if(s.metadata.fromCache||s.metadata.hasPendingWrites)return;
-   clearTimeout(tmr);
-   var firstTime=!cloud;cloud=ref;
-   if(!s.exists){if(firstTime){if(!localAt)localAt=Date.now();pushCloud()}return}
-   var d=s.data(),at=+d.at||0;
-   var lc=0;state.lists.forEach(function(l){lc+=l.tasks.length});lc+=evs.length;
-   var rc=0;try{(d.tasks.lists||[]).forEach(function(l){rc+=(l.tasks||[]).length});rc+=(d.events||[]).length}catch(x){}
-   if(d.dev!==DEV&&(at>localAt||(lc===0&&rc>0)))queueRemote(d);
-   else if(at<localAt&&!(lc===0&&rc>0))scheduleSync();
-   else cst("☁️ מסונכרן בענן ✓")},
+   clearTimeout(tmr);cloud=ref;
+   if(!s.exists){pushCloud();return}
+   var d=s.data();if(d.dev===DEV&&sig(mergeData(localData(),d))===sig(localData())){cst("☁️ מסונכרן בענן ✓");return}
+   queueRemote(d)},
   function(){clearTimeout(tmr);cloud=null;cst("⚠️ החיבור לענן נותק. הנתונים שמורים במכשיר.")});
  });
 })();

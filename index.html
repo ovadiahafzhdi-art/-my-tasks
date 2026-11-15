@@ -267,6 +267,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <button type="button" class="bkbtn" id="cLogin">☁️ התחבר / צור חשבון</button>
 <div class="fhint" id="cErr" role="alert"></div>
 </div>
+<div class="fhint" style="text-align:center;opacity:.5;font-size:12px;margin-top:14px">גרסה 2026-11-15.9</div>
 <div style="text-align:center"><button type="button" id="cOut" hidden style="background:none;border:0;color:inherit;opacity:.6;text-decoration:underline;font-size:13px;margin-top:6px">התנתק מהענן</button></div>
 </main>
 <div class="cv" id="bk" hidden><div class="cvbar"><button type="button" id="bkBack">חזרה</button></div>
@@ -746,6 +747,11 @@ function shareIcs(s,name){
   try{var f=new File([s],name,{type:"text/calendar"});if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){navigator.share({files:[f]}).catch(function(){location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(s)});return}}catch(x){}
   if(/iPhone|iPad/i.test(navigator.userAgent)){location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(s);return}
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/calendar"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
+
+/* ---- עדכון אוטומטי לגרסה חדשה ---- */
+var APP_VER="2026-11-15.9";
+function checkUpdate(){try{fetch(location.pathname+"?u="+Date.now(),{cache:"no-store"}).then(function(r){return r.text()}).then(function(t){var m=t.match(/var APP_VER="([^"]+)"/);if(m&&m[1]!==APP_VER&&!document.getElementById("updBar")){var b=el("button","go","🔄 יש גרסה חדשה לאפליקציה – לחץ לעדכון");b.id="updBar";b.type="button";b.style.cssText="position:fixed;bottom:16px;left:16px;right:16px;z-index:999;padding:14px";b.onclick=function(){location.replace(location.pathname+"?v="+m[1])};document.body.appendChild(b)}}).catch(function(){})}catch(e){}}
+setTimeout(checkUpdate,3000);document.addEventListener("visibilitychange",function(){if(!document.hidden)checkUpdate()});
 
 /* ---- פתיחה באפליקציה ולא באתר ---- */
 function openApp(appUrl,webUrl){var gone=false,t;

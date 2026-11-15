@@ -673,6 +673,7 @@ function applyRemote(d){
   if(unsub){unsub();unsub=null}cloud=null;
   if(!u){box.hidden=false;out.hidden=true;cst("💾 נשמר במכשיר בלבד. התחבר כדי לסנכרן:");return}
   box.hidden=true;out.hidden=false;out.textContent="התנתק מהענן ("+(u.email||"")+")";
+  try{var lu=localStorage.getItem("sync-uid");if(lu!==u.uid){var had=0;state.lists.forEach(function(l){had+=l.tasks.length});if(had||evs.length)localStorage.setItem("pre-switch-backup",JSON.stringify({tasks:state,events:evs,uid:lu,at:Date.now()}));localAt=0;localStorage.setItem(SKEY,"0");localStorage.setItem("sync-uid",u.uid)}}catch(x){}
   cst("☁️ מתחבר לענן...");
   var ref=fdb.collection("users").doc(u.uid).collection("app").doc("data");
   var tmr=setTimeout(function(){cst("☁️ הענן לא זמין כרגע. הנתונים נשמרים במכשיר.")},10000);

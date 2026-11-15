@@ -234,7 +234,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <div class="row"><button class="go" id="gAdd" type="button">הוסף הופעה ללוז</button><span id="gSt" role="status"></span></div>
 </div>
 <details class="pastebox"><summary>🤖 או תן ל-Claude לסדר לך את הלו״ז</summary>
-<div class="fhint" style="margin-top:8px">1. לחץ על הכפתור. ההוראות יועתקו ו-Claude ייפתח.<br>2. אם ההוראות לא מופיעות שם, הדבק אותן (לחיצה ארוכה ← הדבק).<br>3. שלח ל-Claude את ההופעות שלך כמו שהן, הוא ישאל על זמני נסיעה ויחזיר שורות מוכנות.<br>4. העתק את השורות והדבק כאן למטה.</div>
+<div class="fhint" style="margin-top:8px">1. לחץ על הכפתור. ההוראות יועתקו ואפליקציית Claude תיפתח.<br>2. אם ההוראות לא מופיעות שם, הדבק אותן (לחיצה ארוכה ← הדבק) ושלח.<br>3. שלח ל-Claude את ההופעות שלך כמו שהן, הוא ישאל על זמני נסיעה ויחזיר שורות מוכנות.<br>4. העתק את השורות והדבק כאן למטה.</div>
 <div class="row" style="margin-bottom:10px"><button class="go" id="aiBtn" type="button">🤖 פתח את Claude עם ההוראות</button><span id="aiSt" role="status"></span></div>
 <textarea id="pIn" placeholder="16.11.2026 | הופעה | אשדוד | עלייה 19:00 | מוכן 18:00 | יציאה 16:30 | נסיעה 90" aria-label="לוז להדבקה"></textarea>
 <div class="row"><button class="go" id="pBtn" type="button">הוסף ללוז</button><span id="pSt" role="status"></span></div></details></div>
@@ -364,7 +364,7 @@ function panel(t,sb){
   var s=subText(t);sb.textContent=s;sb.hidden=!s;
   wa.innerHTML="";var n=intl(t.ph);
   if(n){var nm=t.c?" "+t.c:"";
-   var link=function(txt,msg){var a=el("a","wabtn",txt);a.href="https://wa.me/"+n+"?text="+encodeURIComponent(msg);a.target="_blank";a.rel="noopener";wa.appendChild(a)};
+   var link=function(txt,msg){var a=el("a","wabtn",txt);a.href="https://wa.me/"+n+"?text="+encodeURIComponent(msg);a.onclick=function(ev){ev.preventDefault();openApp("whatsapp://send?phone="+n+"&text="+encodeURIComponent(msg),"https://wa.me/"+n+"?text="+encodeURIComponent(msg))};wa.appendChild(a)};
    link("שלח הודעה בוואטסאפ","היי"+nm+", ");
    link("שלח תנאים לאישור",termsText(t));if(tot>0&&left>0)link("תזכורת על היתרה","היי"+nm+", תזכורת קטנה לגבי היתרה לתשלום: "+fmt(left)+". תודה!")}
   updateSum()}
@@ -472,7 +472,7 @@ function drawList(stuMode,boxId,emptyId,today){
   if(e.note)c.appendChild(el("div","evl",e.note));
   if(stu&&e.start)c.appendChild(calBtn(e));
   if(!stu){if(e.paid)c.className+=" ok";var pb=el("button","paid"+(e.paid?" yes":""),e.paid?"✓ שולם":"✗ לא שולם");pb.type="button";pb.setAttribute("aria-pressed",!!e.paid);pb.onclick=function(){e.paid=!e.paid;saveEv();drawEvents()};c.appendChild(pb);
-   var wz=el("div","wz"),nav=el("a","wabtn wzb","🚗 נווט ב-Waze");nav.href=e.waze||("https://waze.com/ul?q="+encodeURIComponent(e.venue||"")+"&navigate=yes");nav.target="_blank";nav.rel="noopener";wz.appendChild(nav);
+   var wz=el("div","wz"),nav=el("a","wabtn wzb","🚗 נווט ב-Waze");nav.href=e.waze||("https://waze.com/ul?q="+encodeURIComponent(e.venue||"")+"&navigate=yes");if(!e.waze)nav.onclick=function(ev){ev.preventDefault();openApp("waze://?q="+encodeURIComponent(e.venue||"")+"&navigate=yes","https://waze.com/ul?q="+encodeURIComponent(e.venue||"")+"&navigate=yes")};nav.target="_blank";nav.rel="noopener";wz.appendChild(nav);
    var ed=el("button","tg",e.waze?"שנה מיקום":"📍 הדבק קישור מיקום");ed.type="button";
    ed.onclick=function(){var bx=el("div","pr2"),inp=document.createElement("input");inp.type="text";inp.dir="ltr";inp.placeholder="הדבק כאן קישור מ-Waze";inp.value=e.waze||"";var sv=el("button","go","שמור");sv.type="button";sv.onclick=function(){var mm=inp.value.match(/https?:\/\/\S+/);e.waze=mm?mm[0]:"";saveEv();drawEvents()};bx.appendChild(inp);bx.appendChild(sv);ed.replaceWith(bx);inp.focus()};
    wz.appendChild(ed);if(!e.waze)wz.appendChild(el("span","evl","(כרגע לפי שם המקום)"));c.appendChild(wz);c.appendChild(calBtn(e))}
@@ -740,6 +740,14 @@ function calBtn(e){var b=el("button","tg","📅 הוסף ליומן עם תזכ�
   var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/calendar"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)};
  return b}
 
+/* ---- פתיחה באפליקציה ולא באתר ---- */
+function openApp(appUrl,webUrl){var gone=false,t;
+ function bye(){gone=true;clearTimeout(t)}
+ document.addEventListener("visibilitychange",function v(){if(document.hidden){bye();document.removeEventListener("visibilitychange",v)}});
+ window.addEventListener("blur",bye,{once:true});window.addEventListener("pagehide",bye,{once:true});
+ t=setTimeout(function(){if(!gone&&!document.hidden){var w=window.open(webUrl,"_blank","noopener");if(!w)location.href=webUrl}},1600);
+ location.href=appUrl}
+
 /* ---- הוראות ל-Claude ---- */
 var AI_PROMPT=["אני משתמש באפליקציה \"המשימות שלי\" לניהול הופעות. מעכשיו, בכל פעם שאשלח לך הופעות (תאריך, אולם ושעת עלייה לבמה), סדר לי את הלו״ז כך:",
 "1. לכל הופעה שאל אותי כמה דקות נסיעה יש מהבית לאולם לפי Waze. שאלה אחת בכל פעם.",
@@ -751,7 +759,7 @@ var AI_PROMPT=["אני משתמש באפליקציה \"המשימות שלי\" �
 "אם זה אפשרי אצלך, שמור את ההוראות האלה לשיחות הבאות. עכשיו שאל אותי מה ההופעות שלי."].join("\n");
 document.getElementById("aiBtn").onclick=function(){var st=document.getElementById("aiSt");
  try{navigator.clipboard.writeText(AI_PROMPT).then(function(){st.textContent="✓ ההוראות הועתקו"},function(){})}catch(x){}
- window.open("https://claude.ai/new?q="+encodeURIComponent(AI_PROMPT),"_blank","noopener")};
+ var q=encodeURIComponent(AI_PROMPT);openApp("claude://claude.ai/new?q="+q,"https://claude.ai/new?q="+q)};
 
 /* ---- שם והוספת הופעה ---- */
 function drawMe(){var n=document.getElementById("meName");if(!n)return;var v=state.me||"";n.textContent=v||"✎ לחץ כאן ורשום את שמך";n.dir=/[a-zA-Z]/.test(v)&&!/[֐-׿]/.test(v)?"ltr":"rtl";n.style.opacity=v?"":".6";n.style.fontSize=v?"":"22px"}

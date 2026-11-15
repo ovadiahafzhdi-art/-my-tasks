@@ -119,6 +119,12 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 .bkbtn{display:block;margin:26px auto 0;font:inherit;font-size:15px;font-weight:600;border:1px solid var(--line);background:rgba(0,0,0,.25);color:#e9d39b;border-radius:999px;padding:9px 18px;cursor:pointer}
 #bk .fhint{margin:0 0 10px}
 #bk .paste{margin-bottom:14px}
+.gform{background:linear-gradient(180deg,#1c1914,#16140f);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.ggrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.ggrid label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
+.ggrid .gwide{grid-column:1/-1}
+.ggrid input{font:inherit;font-size:16px;padding:9px;border-radius:10px;border:1px solid var(--line);background:#0f0e0b;color:inherit;min-width:0}
+.pastebox summary{cursor:pointer;color:var(--mute);margin:6px 0}
 .frng{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
 .frng .tab{padding:9px 4px;text-align:center;font-size:15px}
 .frng .cp{font:inherit;font-weight:700;border:0;border-radius:10px;padding:8px 14px;background:var(--gold);color:var(--on-accent);cursor:pointer}
@@ -202,7 +208,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <div class="bgtop" aria-hidden="true"></div>
 <main>
 <div class="bsd">בס״ד</div>
-<header class="hero"><div class="welcome">ברוך הבא</div><h1 dir="ltr">Ovadia Yosef</h1><div class="orn2" aria-hidden="true">✦</div></header>
+<header class="hero"><div class="welcome">ברוך הבא</div><h1 id="meName" style="cursor:pointer" title="לחץ כדי לשנות את השם"></h1><div class="orn2" aria-hidden="true">✦</div></header>
 <button class="arrive" id="arrive" type="button">🎹 הגעתי לאולפן</button>
 <div class="seg"><button type="button" class="tab" id="segt" aria-selected="true">משימות</button><button type="button" class="tab" id="segs" aria-selected="false">לו״ז הופעות</button><button type="button" class="tab" id="segu" aria-selected="false">לו״ז אולפן</button><button type="button" class="tab" id="segf" aria-selected="false">לו״ז פנוי</button></div>
 <div id="tasksView">
@@ -215,9 +221,20 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <div class="foot"><button id="clear" type="button">נקה משימות שבוצעו</button><button id="delList" type="button">מחק רשימה</button></div>
 </div>
 <section id="schedView" hidden>
-<div class="paste"><b>הדבק כאן את לו״ז ההופעות ש-Claude הכין לך</b>
+<div class="paste"><div class="gform"><b>➕ הוספת הופעה</b>
+<div class="ggrid">
+<label>תאריך<input type="date" id="gDate"></label>
+<label>שעת עלייה לבמה<input type="time" id="gStage" value="20:00"></label>
+<label class="gwide">שם האולם<input type="text" id="gHall" placeholder="למשל: אולמי שרון" autocomplete="off"></label>
+<label>זמן נסיעה (דקות, לפי Waze)<input type="number" id="gDrive" inputmode="numeric" min="0" placeholder="30"></label>
+<label>מוכן כמה לפני העלייה (דקות)<input type="number" id="gPrep" inputmode="numeric" min="0" value="60"></label>
+</div>
+<div class="fhint" id="gCalc"></div>
+<div class="row"><button class="go" id="gAdd" type="button">הוסף הופעה ללוז</button><span id="gSt" role="status"></span></div>
+</div>
+<details class="pastebox"><summary>או הדבק לו״ז מוכן (למשל מ-Claude)</summary>
 <textarea id="pIn" placeholder="16.11.2026 | הופעה | אשדוד | עלייה 19:00 | מוכן 18:00 | יציאה 16:30 | נסיעה 90" aria-label="לוז להדבקה"></textarea>
-<div class="row"><button class="go" id="pBtn" type="button">הוסף ללוז</button><span id="pSt" role="status"></span></div></div>
+<div class="row"><button class="go" id="pBtn" type="button">הוסף ללוז</button><span id="pSt" role="status"></span></div></details></div>
 <div id="evList"></div><p class="empty" id="evEmpty">אין הופעות קרובות. הדבק למעלה את הלוז שקיבלת בשיחה.</p>
 </section>
 <section id="freeView" hidden>
@@ -313,7 +330,7 @@ function drawContract(){
  var sr=h2.attachShadow?h2.attachShadow({mode:"open"}):h2;sr.innerHTML="<style>"+css+"</style>"+doc.body.innerHTML}
 function showContract(t){cvT=t;document.getElementById("cvMe").value=state.me||"";document.getElementById("cvSt").textContent="";document.getElementById("cvTxt").hidden=true;drawContract();document.getElementById("cv").hidden=false;document.getElementById("cv").scrollTop=0}
 document.getElementById("cvBack").onclick=function(){document.getElementById("cv").hidden=true};
-document.getElementById("cvMe").oninput=function(){state.me=this.value.trim();save();drawContract()};
+document.getElementById("cvMe").oninput=function(){state.me=this.value.trim();save();drawContract();drawMe()};
 document.getElementById("cvCopy").onclick=async function(){
  var st=document.getElementById("cvSt"),tx=document.getElementById("cvTxt"),s=contractText(cvT);tx.value=s;
  try{await navigator.clipboard.writeText(s);st.textContent="ההסכם הועתק. אפשר להדביק בוואטסאפ ולשלוח ללקוח."}
@@ -416,6 +433,7 @@ function parseLine(line){
   if(p.indexOf(dm[0])>-1&&p.replace(dm[0],"").replace(/[^֐-׿a-zA-Z]/g,"").replace(/^(יום)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)$/,"")==="")return;
   if(/https?:\/\//.test(p)){e.waze=(p.match(/https?:\/\/\S+/)||[""])[0];return}
   if(/^(הופעה|אולפן)$/.test(p))return;
+  if(/^(יום\s*)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)$/.test(p))return;
   if(/^עלי/.test(p)){e.stage=tm(p);return}
   if(/^מוכן/.test(p)){e.ready=tm(p);return}
   if(/^יציאה/.test(p)){e.leave=tm(p);return}
@@ -449,11 +467,12 @@ function drawList(stuMode,boxId,emptyId,today){
   if(stu){if(e.start)c.appendChild(el("div","evl","שעה: "+e.start+(e.end?" עד "+e.end:"")));var cl=clashOf(e);if(cl){c.className+=" clash";c.appendChild(el("div","evl warn","⚠ מתנגש עם הופעה"+(cl.venue?" ב"+cl.venue:"")))}}
   else{if(e.leave)c.appendChild(el("div","evl lv","יציאה: "+e.leave+(e.drive?" (נסיעה "+e.drive+" דק׳)":"")));if(e.ready)c.appendChild(el("div","evl","מוכן ב: "+e.ready));if(e.stage)c.appendChild(el("div","evl","עלייה לבמה: "+e.stage))}
   if(e.note)c.appendChild(el("div","evl",e.note));
+  if(stu&&e.start)c.appendChild(calBtn(e));
   if(!stu){if(e.paid)c.className+=" ok";var pb=el("button","paid"+(e.paid?" yes":""),e.paid?"✓ שולם":"✗ לא שולם");pb.type="button";pb.setAttribute("aria-pressed",!!e.paid);pb.onclick=function(){e.paid=!e.paid;saveEv();drawEvents()};c.appendChild(pb);
    var wz=el("div","wz"),nav=el("a","wabtn wzb","🚗 נווט ב-Waze");nav.href=e.waze||("https://waze.com/ul?q="+encodeURIComponent(e.venue||"")+"&navigate=yes");nav.target="_blank";nav.rel="noopener";wz.appendChild(nav);
    var ed=el("button","tg",e.waze?"שנה מיקום":"📍 הדבק קישור מיקום");ed.type="button";
    ed.onclick=function(){var bx=el("div","pr2"),inp=document.createElement("input");inp.type="text";inp.dir="ltr";inp.placeholder="הדבק כאן קישור מ-Waze";inp.value=e.waze||"";var sv=el("button","go","שמור");sv.type="button";sv.onclick=function(){var mm=inp.value.match(/https?:\/\/\S+/);e.waze=mm?mm[0]:"";saveEv();drawEvents()};bx.appendChild(inp);bx.appendChild(sv);ed.replaceWith(bx);inp.focus()};
-   wz.appendChild(ed);if(!e.waze)wz.appendChild(el("span","evl","(כרגע לפי שם המקום)"));c.appendChild(wz)}
+   wz.appendChild(ed);if(!e.waze)wz.appendChild(el("span","evl","(כרגע לפי שם המקום)"));c.appendChild(wz);c.appendChild(calBtn(e))}
   var x=el("button","x","×");x.setAttribute("aria-label","מחק אירוע");
   x.onclick=function(){evs=evs.filter(function(o){return o!==e});saveEv();drawEvents();fillSlots()};c.appendChild(x);
   box.appendChild(c)})}
@@ -669,6 +688,47 @@ function applyRemote(d){
   function(){clearTimeout(tmr);cloud=null;cst("⚠️ החיבור לענן נותק. הנתונים שמורים במכשיר.")});
  });
 })();
+/* ---- תזכורות ביומן (.ics) ---- */
+function icsT(d,t){return d.replace(/-/g,"")+"T"+t.replace(":","")+"00"}
+function icsEsc(s){return String(s||"").replace(/[\;,]/g,function(m){return"\\"+m}).replace(/\n/g,"\\n")}
+function icsShift(d,t,m){var p=d.split("-"),q=t.split(":"),x=new Date(+p[0],+p[1]-1,+p[2],+q[0],+q[1]+m);return{d:x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate()),t:pad(x.getHours())+":"+pad(x.getMinutes())}}
+function alarm(trig,txt,rel){return["BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(txt),"TRIGGER"+(rel?";RELATED=END":"")+":"+trig,"END:VALARM"].join("\r\n")}
+function makeIcs(e){
+ var stu=e.type==="studio",L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//my-tasks//he","CALSCALE:GREGORIAN","BEGIN:VEVENT","UID:"+encodeURIComponent(e.id)+"@my-tasks","DTSTAMP:"+new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z"];
+ if(stu){var en=e.end||icsShift(e.date,e.start,120).t,ed=e.end?e.date:icsShift(e.date,e.start,120).d;if(e.end&&e.end<e.start)ed=icsShift(e.date,"00:00",1440).d;
+  L.push("DTSTART:"+icsT(e.date,e.start),"DTEND:"+icsT(ed,en),"SUMMARY:"+icsEsc("🎹 אולפן"+(e.venue?" - "+e.venue:"")),alarm("-PT1H","אולפן בעוד שעה"+(e.venue?" - "+e.venue:"")))}
+ else{var st=e.leave||e.ready||e.stage,ev=icsShift(e.date,e.stage||st,240);
+  L.push("DTSTART:"+icsT(e.date,st),"DTEND:"+icsT(ev.d,ev.t),"SUMMARY:"+icsEsc("🎤 הופעה - "+(e.venue||"")),"LOCATION:"+icsEsc(e.venue||""),
+   "DESCRIPTION:"+icsEsc((e.leave?"יציאה: "+e.leave+"\n":"")+(e.ready?"מוכן: "+e.ready+"\n":"")+(e.stage?"עלייה לבמה: "+e.stage:"")),
+   alarm("-PT30M","עוד 30 דקות יוצאים להופעה ב"+(e.venue||"")+(e.leave?" (יציאה "+e.leave+")":"")),
+   alarm("PT0M","ההופעה ב"+(e.venue||"")+" שולמה? עדכן באפליקציה",true))}
+ L.push("END:VEVENT","END:VCALENDAR");return L.join("\r\n")}
+function calBtn(e){var b=el("button","tg","📅 הוסף ליומן עם תזכורות");b.type="button";
+ b.onclick=function(){var s=makeIcs(e),name=(e.type==="studio"?"studio":"gig")+"-"+e.date+".ics";
+  try{var f=new File([s],name,{type:"text/calendar"});if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/i.test(navigator.userAgent)){navigator.share({files:[f]}).catch(function(){location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(s)});return}}catch(x){}
+  if(/iPhone|iPad/i.test(navigator.userAgent)){location.href="data:text/calendar;charset=utf-8,"+encodeURIComponent(s);return}
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([s],{type:"text/calendar"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)};
+ return b}
+
+/* ---- שם והוספת הופעה ---- */
+function drawMe(){var n=document.getElementById("meName");if(!n)return;var v=state.me||"";n.textContent=v||"✎ לחץ כאן ורשום את שמך";n.dir=/[a-zA-Z]/.test(v)&&!/[֐-׿]/.test(v)?"ltr":"rtl";n.style.opacity=v?"":".6";n.style.fontSize=v?"":"22px"}
+document.getElementById("meName").onclick=function(){var v=prompt("איך לקרוא לך? (השם יופיע בכותרת ובחוזים)",state.me||"");if(v===null)return;state.me=v.trim();save();drawMe()};
+var _render=render;render=function(){_render.apply(this,arguments);drawMe()};
+function addMin(t,m){var p=t.split(":"),x=((+p[0])*60+(+p[1])+m)%1440;if(x<0)x+=1440;return pad(Math.floor(x/60))+":"+pad(x%60)}
+function gCalc(){var s=document.getElementById("gStage").value,d=+document.getElementById("gDrive").value||0,pr=+document.getElementById("gPrep").value||0,c=document.getElementById("gCalc");
+ if(!s){c.textContent="";return null}var ready=addMin(s,-pr),leave=addMin(ready,-d);
+ c.textContent="מוכן ב-"+ready+" · יציאה מהבית ב-"+leave+(d?"":" (לא הוזן זמן נסיעה)");return{ready:ready,leave:leave,drive:d}}
+["gStage","gDrive","gPrep"].forEach(function(id){document.getElementById(id).addEventListener("input",gCalc)});
+(function(){var t=new Date();document.getElementById("gDate").value=t.getFullYear()+"-"+pad(t.getMonth()+1)+"-"+pad(t.getDate());gCalc()})();
+document.getElementById("gAdd").onclick=function(){
+ var dt=document.getElementById("gDate").value,hall=document.getElementById("gHall").value.trim().replace(/[|｜]/g," "),s=document.getElementById("gStage").value,st=document.getElementById("gSt");
+ if(!dt||!s||!hall){st.textContent="צריך למלא תאריך, שעה ושם אולם";return}
+ var c=gCalc(),p=dt.split("-"),day=DAYS[new Date(+p[0],+p[1]-1,+p[2]).getDay()];
+ var line=p[2]+"."+p[1]+"."+p[0]+" | הופעה | "+hall+" | עלייה "+s+" | מוכן "+c.ready+" | יציאה "+c.leave+(c.drive?" | נסיעה "+c.drive:"");
+ var box=document.getElementById("pIn"),keep=box.value;box.value=line;document.getElementById("pBtn").onclick();box.value=keep;
+ st.textContent="✓ נוספה הופעה ב"+hall+", יום "+day+". יציאה ב-"+c.leave;
+ document.getElementById("gHall").value="";document.getElementById("gDrive").value=""};
+
 drawEvents();
 fillSlots();
 render();

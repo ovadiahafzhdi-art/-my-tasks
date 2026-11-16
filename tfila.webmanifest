@@ -1,0 +1,16 @@
+{
+  "id": "tfila",
+  "name": "התפילות שלי",
+  "short_name": "התפילות שלי",
+  "start_url": "tfila.html",
+  "scope": "./",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "he",
+  "background_color": "#0d0c0a",
+  "theme_color": "#0d0c0a",
+  "icons": [
+    {"src": "tfila-icon.png", "sizes": "180x180", "type": "image/png"},
+    {"src": "tfila-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}

@@ -47,6 +47,14 @@ h1{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:36px;font-weight:700;m
 .wd i{width:8px;height:8px;border-radius:50%;background:#3a352b;display:block}
 .wd i.y{background:var(--ok)}
 .wd.sh{opacity:.5}
+.zm{background:linear-gradient(180deg,#1c1914,#16140f);border:1px solid var(--line);border-radius:16px;padding:12px 16px;margin-top:16px}
+.zm h3{margin:0 0 6px;font-family:"Frank Ruhl Libre",Georgia,serif;font-size:22px;color:#e9d39b;text-align:center}
+.zr{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #2a261e;font-size:16px}
+.zr:last-child{border-bottom:0}
+.zr b{direction:ltr;font-weight:700}
+.zr span small{color:var(--mute);font-size:13px;margin-inline-start:6px}
+.zr.past{opacity:.45}
+.zr.nowz{color:#f3dfa8}
 .foot{color:var(--mute);font-size:13px;text-align:center;margin-top:16px}
 .foot a{color:#c9a25a}
 </style>
@@ -62,7 +70,8 @@ h1{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:36px;font-weight:700;m
 <div id="next"></div>
 <div id="cards"></div>
 <div class="week" id="week"></div>
-<div class="foot">הזמנים לפי ירושלים · צאת הכוכבים = 20 דק׳ אחרי השקיעה · חצות = אמצע הלילה<br><a href="./">← המשימות שלי</a></div>
+<div class="zm"><h3>זמני היום</h3><div id="zm"></div></div>
+<div class="foot">הזמנים לפי ירושלים · שעות זמניות: גר״א מהנץ עד השקיעה, מג״א מעלות השחר (16.1°) עד צאת הכוכבים (16.1°) · צאת הכוכבים = 20 דק׳ אחרי השקיעה<br><a href="./">← המשימות שלי</a></div>
 </main>
 <script>
 var LAT=31.7767,LNG=35.2345,KEY="tfila-v1",TZ="Asia/Jerusalem";
@@ -73,7 +82,7 @@ function ymd(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate
 function addD(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x}
 function hm(t){return t?pad(t.getHours())+":"+pad(t.getMinutes()):"--:--"}
 /* זריחה ושקיעה (אלגוריתם NOAA) */
-function sunTimes(d){
+function sunTimes(d,zen){zen=zen||90.833;
  var rad=Math.PI/180,deg=180/Math.PI;
  function calc(rising){
   var jd=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5+2440587.5,T=(jd-2451545)/36525;
@@ -83,7 +92,7 @@ function sunTimes(d){
   var eps0=23+(26+(21.448-T*(46.815+T*(0.00059-T*0.001813)))/60)/60,eps=eps0+0.00256*Math.cos(om*rad);
   var dec=Math.asin(Math.sin(eps*rad)*Math.sin(lam*rad))*deg,y=Math.pow(Math.tan(eps*rad/2),2);
   var eqt=4*deg*(y*Math.sin(2*L0*rad)-2*e*Math.sin(M*rad)+4*e*y*Math.sin(M*rad)*Math.cos(2*L0*rad)-0.5*y*y*Math.sin(4*L0*rad)-1.25*e*e*Math.sin(2*M*rad));
-  var ha=Math.acos(Math.cos(90.833*rad)/(Math.cos(LAT*rad)*Math.cos(dec*rad))-Math.tan(LAT*rad)*Math.tan(dec*rad))*deg;
+  var ha=Math.acos(Math.cos(zen*rad)/(Math.cos(LAT*rad)*Math.cos(dec*rad))-Math.tan(LAT*rad)*Math.tan(dec*rad))*deg;
   var mins=720-4*(LNG+(rising?ha:-ha))-eqt;
   return mins}
  function at(rising){var m=calc(rising);return new Date(Math.round((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())+m*6e4)/6e4)*6e4)}
@@ -107,6 +116,12 @@ function info(d){/* מה מיוחד ביום הזה */
  if((h.m==="Adar"||h.m==="Adar II")&&(h.d===14||h.d===15))r.an=h.d===15?"שושן פורים (בירושלים)":"פורים";
  return r}
 function times(d){var s=sunTimes(d),n=sunTimes(addD(d,1));return{rise:s.rise,set:s.set,tzeit:new Date(+s.set+20*6e4),chatzot:new Date((+s.set+(+n.rise))/2)}}
+
+function zmanim(d){var s=sunTimes(d),a=sunTimes(d,106.1),n=sunTimes(addD(d,1)),R=+s.rise,S=+s.set,H=(S-R)/12,A=+a.rise,T=+a.set,M=(T-A)/12,f=function(x){return new Date(Math.round(x/6e4)*6e4)};
+ return[["עלות השחר","",f(A)],["נץ החמה","",f(R)],["סוף זמן ק״ש","מג״א",f(A+3*M)],["סוף זמן ק״ש","גר״א",f(R+3*H)],["סוף זמן תפילה","מג״א",f(A+4*M)],["סוף זמן תפילה","גר״א",f(R+4*H)],["חצות היום","",f(R+6*H)],["מנחה גדולה","",f(R+6.5*H)],["מנחה קטנה","",f(R+9.5*H)],["פלג המנחה","",f(R+10.75*H)],["שקיעה","",f(S)],["צאת הכוכבים","",f(S+20*6e4)],["חצות הלילה","",f((S+(+n.rise))/2)]]}
+function drawZ(isToday){var box=document.getElementById("zm"),now=new Date(),list=zmanim(cur),nextShown=false;box.innerHTML="";
+ list.forEach(function(z){var r=document.createElement("div"),past=isToday&&z[2]<now;r.className="zr"+(past?" past":"");if(isToday&&!past&&!nextShown){r.className+=" nowz";nextShown=true}
+  var l=document.createElement("span");l.textContent=z[0];if(z[1]){var sm=document.createElement("small");sm.textContent=z[1];l.appendChild(sm)}var v=document.createElement("b");v.textContent=hm(z[2]);r.appendChild(l);r.appendChild(v);box.appendChild(r)})}
 var cur=new Date();cur.setHours(12,0,0,0);
 function render(){
  var now=new Date(),key=ymd(cur),isToday=key===ymd(now),t=times(cur),I=info(cur),N=info(addD(cur,1)),m=marks[key]||{};
@@ -135,6 +150,7 @@ function render(){
   var ad=p.add.filter(Boolean);if(ad.length){var a=document.createElement("div");a.className="add";a.textContent="לא לשכוח: "+ad.join(" · ");c.appendChild(a)}
   var btn=document.createElement("button");btn.type="button";btn.className="chk";btn.textContent=m[p.k]?"✓ התפללתי":"סמן שהתפללתי";btn.setAttribute("aria-pressed",!!m[p.k]);
   btn.onclick=function(){var mm=marks[key]=marks[key]||{};if(mm[p.k])delete mm[p.k];else mm[p.k]=Date.now();saveM();render()};c.appendChild(btn);box.appendChild(c)});
+ drawZ(isToday);
  var wk=document.getElementById("week");wk.innerHTML="";var DN=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
  for(var i=6;i>=0;i--){(function(d){var k=ymd(d),mm=marks[k]||{},e=document.createElement("div");e.className="wd"+(k===key?" cur":"")+(d.getDay()===6?" sh":"");
   e.appendChild(document.createTextNode(DN[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)));var ds=document.createElement("div");ds.className="dots";["s","m","a"].forEach(function(x){var ii=document.createElement("i");if(mm[x])ii.className="y";ds.appendChild(ii)});e.appendChild(ds);

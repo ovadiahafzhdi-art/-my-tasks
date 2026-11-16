@@ -125,7 +125,7 @@ function zmanim(d){var s=sunTimes(d),a=sunTimes(d,106.1),n=sunTimes(addD(d,1)),R
 function drawZ(isToday){var box=document.getElementById("zm"),now=new Date(),list=zmanim(cur),nextShown=false;box.innerHTML="";
  list.forEach(function(z){var r=document.createElement("div"),past=isToday&&z[2]<now;r.className="zr"+(past?" past":"");if(isToday&&!past&&!nextShown){r.className+=" nowz";nextShown=true}
   var l=document.createElement("span");l.textContent=z[0];if(z[1]){var sm=document.createElement("small");sm.textContent=z[1];l.appendChild(sm)}var v=document.createElement("b");v.textContent=hm(z[2]);r.appendChild(l);r.appendChild(v);box.appendChild(r)})}
-var SCN="התפללתי",KW={s:"הנץ",m:"מנחה",a:"ערבית"};
+var SCN="התפללתי",KW={s:"הנץ",m:"מנחה",l:"לימוד",a:"ערבית"};
 function linkOn(){try{return localStorage.getItem("tfila-link")!=="0"}catch(e){return true}}
 function runSC(k){location.href="shortcuts://run-shortcut?name="+encodeURIComponent(SCN)+"&input=text&text="+encodeURIComponent(KW[k])}
 var cur=new Date();cur.setHours(12,0,0,0);
@@ -144,22 +144,23 @@ function render(){
   {k:"s",n:"שחרית",sub:"נץ החמה",rows:[["תזכורת",new Date(+t.rise-30*6e4)],["נץ",t.rise]],due:t.rise,add:[I.yv?"יעלה ויבוא":"",I.an?"על הניסים":"",I.rc||I.name.indexOf("חול")===0?"הלל":""]},
   {k:"m",n:"מנחה",sub:"עד השקיעה",rows:[["תזכורת",new Date(+t.set-30*6e4)],["שקיעה",t.set]],due:t.set,add:[I.yv?"יעלה ויבוא":"",I.an?"על הניסים":""]},
   {k:"a",n:"ערבית",sub:"עד חצות",rows:[["צאת הכוכבים",t.tzeit],["חצות",t.chatzot]],due:t.chatzot,add:[N.yv?"יעלה ויבוא":"",N.an?"על הניסים":""]}];
+ var L=new Date(cur);L.setHours(18,0,0,0);P.splice(2,0,{k:"l",n:"לימוד תורה",sub:"בשעה 18:00",rows:[["תזכורת",new Date(+L-30*6e4)],["לימוד",L]],due:L,add:[]});
  var nx=document.getElementById("next");nx.innerHTML="";nx.className="";
  if(isToday){var up=P.filter(function(p){return!m[p.k]&&now<p.due})[0];
   if(up){var mins=Math.round((up.due-now)/6e4),left=mins>=60?Math.floor(mins/60)+" שע׳ ו-"+(mins%60)+" דק׳":mins+" דק׳";
-   nx.className="next";nx.innerHTML="";nx.appendChild(document.createTextNode("הבאה בתור: "+up.n));var sm=document.createElement("small");sm.textContent=(up.k==="s"?"עד הנץ":up.k==="m"?"עד השקיעה":"עד חצות")+" נשארו "+left;nx.appendChild(sm)}
+   nx.className="next";nx.innerHTML="";nx.appendChild(document.createTextNode("הבאה בתור: "+up.n));var sm=document.createElement("small");sm.textContent=(up.k==="s"?"עד הנץ":up.k==="m"?"עד השקיעה":up.k==="l"?"עד הלימוד":"עד חצות")+" נשארו "+left;nx.appendChild(sm)}
   else nx.className=""}
  var box=document.getElementById("cards");box.innerHTML="";
  P.forEach(function(p){var c=document.createElement("div");c.className="card"+(m[p.k]?" done":"");
   var h2=document.createElement("h2");h2.textContent=p.n;var sp=document.createElement("span");sp.textContent=p.sub;h2.appendChild(sp);c.appendChild(h2);
   var tm=document.createElement("div");tm.className="tm";p.rows.forEach(function(r){var s=document.createElement("span");s.textContent=r[0]+" ";var bb=document.createElement("b");bb.textContent=hm(r[1]);s.appendChild(bb);tm.appendChild(s)});c.appendChild(tm);
   var ad=p.add.filter(Boolean);if(ad.length){var a=document.createElement("div");a.className="add";a.textContent="לא לשכוח: "+ad.join(" · ");c.appendChild(a)}
-  var btn=document.createElement("button");btn.type="button";btn.className="chk";btn.textContent=m[p.k]?"✓ התפללתי":"סמן שהתפללתי";btn.setAttribute("aria-pressed",!!m[p.k]);
+  var btn=document.createElement("button");btn.type="button";btn.className="chk";btn.textContent=p.k==="l"?(m[p.k]?"✓ למדתי":"סמן שלמדתי"):(m[p.k]?"✓ התפללתי":"סמן שהתפללתי");btn.setAttribute("aria-pressed",!!m[p.k]);
   btn.onclick=function(){var mm=marks[key]=marks[key]||{},on=!mm[p.k];if(on)mm[p.k]=Date.now();else delete mm[p.k];saveM();render();if(on&&isToday&&linkOn())runSC(p.k)};c.appendChild(btn);box.appendChild(c)});
  drawZ(isToday);
  var wk=document.getElementById("week");wk.innerHTML="";var DN=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
  for(var i=6;i>=0;i--){(function(d){var k=ymd(d),mm=marks[k]||{},e=document.createElement("div");e.className="wd"+(k===key?" cur":"")+(d.getDay()===6?" sh":"");
-  e.appendChild(document.createTextNode(DN[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)));var ds=document.createElement("div");ds.className="dots";["s","m","a"].forEach(function(x){var ii=document.createElement("i");if(mm[x])ii.className="y";ds.appendChild(ii)});e.appendChild(ds);
+  e.appendChild(document.createTextNode(DN[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)));var ds=document.createElement("div");ds.className="dots";["s","m","l","a"].forEach(function(x){var ii=document.createElement("i");if(mm[x])ii.className="y";ds.appendChild(ii)});e.appendChild(ds);
   e.onclick=function(){cur=new Date(d);render()};wk.appendChild(e)})(addD(new Date(new Date().setHours(12,0,0,0)),-i))}
 }
 document.getElementById("pv").onclick=function(){cur=addD(cur,-1);render()};

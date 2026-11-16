@@ -83,6 +83,18 @@ filter:drop-shadow(0 0 6px rgba(214,175,98,.45));animation:flow 16s ease-in-out 
 .det label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--mute)}
 .det input{font:inherit;font-size:16px;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);min-width:0;width:100%}
 .det .full{grid-column:1/-1}
+.det details.deal{grid-column:1/-1;border:1.5px solid #c9a25a;border-radius:12px;padding:0 12px;background:rgba(201,162,90,.06)}
+.det details.deal>summary{cursor:pointer;font-weight:800;color:#f3dfa8;padding:12px 0;list-style:none}
+.det details.deal>summary::-webkit-details-marker{display:none}
+.det details.deal>summary:before{content:"◂ ";display:inline-block}
+.det details.deal[open]>summary:before{content:"▾ "}
+.det .dealb{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:12px}
+.stmore{display:block;margin-top:6px;font:inherit;font-size:14px;font-weight:700;color:#f3dfa8;background:none;border:0;padding:0;cursor:pointer}
+.sti .tx{cursor:pointer}
+.stdet{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:-4px 0 12px}
+.foc .stmore{margin:8px 0}
+.foc .stdet{margin:6px 0 10px}
+
 .det .rem{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:10px;padding:10px 12px;font-weight:600}
 .det .wa{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
 .det textarea{font:inherit;font-size:16px;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);width:100%;min-height:170px;resize:vertical;line-height:1.6}
@@ -195,6 +207,11 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 .ev{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 40px;margin-bottom:8px;border-inline-start:6px solid var(--accent)}
 .ev.st{border-inline-start-color:#0f9d8a}
 .ev .x{position:absolute;top:6px;left:4px}
+.ev .evedit{display:block;margin:8px 0 6px;font:inherit;font-size:15px;font-weight:700;padding:7px 14px;border-radius:999px;border:1.5px solid #c9a25a;background:transparent;color:#f3dfa8;cursor:pointer}
+.ev .evedit[hidden]{display:none}
+.evform{margin:10px 0 0}
+.evform .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.evform .go{padding:10px 18px}
 .evl{color:var(--mute);font-size:15px}
 .ev .lv{color:var(--ink);font-weight:600}
 .empty{color:var(--mute);padding:28px 8px;text-align:center}
@@ -344,13 +361,16 @@ document.getElementById("cvCopy").onclick=async function(){
 document.getElementById("cvPrint").onclick=function(){var st=document.getElementById("cvSt");try{window.print()}catch(e){st.textContent="ההדפסה לא נפתחה כאן. נסה דרך תפריט השיתוף של הדפדפן ← הדפסה."}};
 function grow(i){i.style.height="auto";i.style.height=Math.max(170,i.scrollHeight+4)+"px"}
 function panel(t,sb,nameEl){
- var d=el("div","det");
+ var d=el("div","det"),host=d;
  var nmI=f("שם המשימה","text","שם המשימה",null,false,true);nmI.onblur=function(){if(!nmI.value.trim()){t.text=t.text||"משימה";nmI.value=t.text;if(nameEl)nameEl.textContent=t.text;save()}};
- function f(lab,key,ph,mode,ltr,full){var l=document.createElement("label");if(full)l.className="full";l.appendChild(document.createTextNode(lab));var i=document.createElement(mode==="area"?"textarea":"input");if(mode==="area")i.rows=7;else i.type="text";i.value=t[key]||"";i.placeholder=ph||"";if(mode&&mode!=="area")i.inputMode=mode;if(ltr)i.dir="ltr";i.setAttribute("autocomplete","off");i.oninput=function(){t[key]=i.value;if(mode==="area")grow(i);if(key==="text"&&nameEl)nameEl.textContent=i.value;save();refresh()};l.appendChild(i);d.appendChild(l);if(mode==="area")setTimeout(function(){grow(i)},0);return i}
+ function f(lab,key,ph,mode,ltr,full){var l=document.createElement("label");if(full)l.className="full";l.appendChild(document.createTextNode(lab));var i=document.createElement(mode==="area"?"textarea":"input");if(mode==="area")i.rows=7;else i.type="text";i.value=t[key]||"";i.placeholder=ph||"";if(mode&&mode!=="area")i.inputMode=mode;if(ltr)i.dir="ltr";i.setAttribute("autocomplete","off");i.oninput=function(){t[key]=i.value;if(mode==="area")grow(i);if(key==="text"&&nameEl)nameEl.textContent=i.value;save();refresh()};l.appendChild(i);host.appendChild(l);if(mode==="area")setTimeout(function(){grow(i)},0);return i}
  var dl=document.createElement("label");dl.appendChild(document.createTextNode("תאריך יעד לסיום"));var di=document.createElement("input");di.type="date";di.value=t.due||"";di.onchange=function(){t.due=di.value;save();refresh()};dl.appendChild(di);d.appendChild(dl);
  var pl2=document.createElement("label");pl2.appendChild(document.createTextNode("התקדמות (%)"));var pi2=document.createElement("input");pi2.type="number";pi2.min=0;pi2.max=100;pi2.inputMode="numeric";pi2.dir="ltr";pi2.value=num(t.prog)||"";pi2.placeholder="0";pi2.oninput=function(){t.prog=Math.min(100,Math.max(0,num(pi2.value)));save();refresh()};pl2.appendChild(pi2);d.appendChild(pl2);
- f("שם לקוח","c","");f("טלפון","ph","050-0000000","tel",true);f("שיר / מחרוזת (פתק מפורט)","song","כתוב כאן מה צריך לעשות במחרוזת: סדר השירים, מעברים, סולמות, הערות...","area",false,true);f("סולם","key","");var gI=f("מה הלקוח מקבל (מסמך)","gets","פרט כאן כל מה שהלקוח מקבל: שירים, עיבודים, קבצים, מספר תיקונים, זמני מסירה...","area",false,true);gI.rows=10;var gB=el("button","tg","⤢ פתח כמסמך במסך מלא");gB.type="button";gB.style.marginTop="6px";gB.onclick=function(){openDoc(t,"gets","מה הלקוח מקבל",function(){gI.value=t.gets||"";grow(gI);refresh()})};gI.parentNode.appendChild(gB);f("סכום סגירה (₪)","tot","0","decimal",true);f("מקדמה ששולמה (₪)","adv","0","decimal",true);
- var pw=el("div","pays full");d.appendChild(pw);
+ f("שיר / מחרוזת (פתק מפורט)","song","כתוב כאן מה צריך לעשות במחרוזת: סדר השירים, מעברים, סולמות, הערות...","area",false,true);f("סולם","key","");
+ var dz=document.createElement("details");dz.className="deal full";dz.open=!!(t.c||t.ph||num(t.tot)>0||num(t.adv)>0||(t.pays&&t.pays.length)||t.gets);
+ var dzs=document.createElement("summary");dzs.textContent="לקוח ותשלום";dz.appendChild(dzs);var dzb=el("div","dealb");dz.appendChild(dzb);d.appendChild(dz);host=dzb;
+ f("שם לקוח","c","");f("טלפון","ph","050-0000000","tel",true);var gI=f("מה הלקוח מקבל (מסמך)","gets","פרט כאן כל מה שהלקוח מקבל: שירים, עיבודים, קבצים, מספר תיקונים, זמני מסירה...","area",false,true);gI.rows=10;var gB=el("button","tg","⤢ פתח כמסמך במסך מלא");gB.type="button";gB.style.marginTop="6px";gB.onclick=function(){openDoc(t,"gets","מה הלקוח מקבל",function(){gI.value=t.gets||"";grow(gI);refresh()})};gI.parentNode.appendChild(gB);f("סכום סגירה (₪)","tot","0","decimal",true);f("מקדמה ששולמה (₪)","adv","0","decimal",true);
+ var pw=el("div","pays full");host.appendChild(pw);
  pw.appendChild(el("span","ph","תשלומים נוספים (מתעדכן מיד)"));
  var pl=el("div","");pw.appendChild(pl);
  var pr=el("div","pr2"),pi=document.createElement("input");pi.type="text";pi.inputMode="decimal";pi.dir="ltr";pi.placeholder="סכום תשלום חדש (₪)";
@@ -359,9 +379,9 @@ function panel(t,sb,nameEl){
  pbtn.onclick=function(){var a=num(pi.value);if(!a)return;(t.pays=t.pays||[]).push({a:a,d:new Date().toLocaleDateString("he-IL")});pi.value="";save();drawPays();refresh()};
  drawPays();
  f("תנאים נוספים להסכם (לא חובה)","terms","",null,false,true);
- var rem=el("div","rem"),rv=el("span","");rem.appendChild(el("span","","נשאר לתשלום"));rem.appendChild(rv);d.appendChild(rem);
- var wa=el("div","wa");d.appendChild(wa);
- var ct=el("div","wa");d.appendChild(ct);
+ var rem=el("div","rem"),rv=el("span","");rem.appendChild(el("span","","נשאר לתשלום"));rem.appendChild(rv);host.appendChild(rem);
+ var wa=el("div","wa");host.appendChild(wa);
+ var ct=el("div","wa");host.appendChild(ct);
  var cb=el("button","wabtn alt","צור הסכם");cb.type="button";cb.onclick=function(){showContract(t)};ct.appendChild(cb);
  function refresh(){
   var tot=num(t.tot),left=Math.max(tot-paid(t),0);
@@ -479,6 +499,7 @@ function drawList(stuMode,boxId,emptyId,today){
   if(stu){if(e.start)c.appendChild(el("div","evl","שעה: "+e.start+(e.end?" עד "+e.end:"")));var cl=clashOf(e);if(cl){c.className+=" clash";c.appendChild(el("div","evl warn","⚠ מתנגש עם הופעה"+(cl.venue?" ב"+cl.venue:"")))}}
   else{if(e.leave)c.appendChild(el("div","evl lv","יציאה: "+e.leave+(e.drive?" (נסיעה "+e.drive+" דק׳)":"")));if(e.ready)c.appendChild(el("div","evl","מוכן ב: "+e.ready));if(e.stage)c.appendChild(el("div","evl","עלייה לבמה: "+e.stage))}
   if(e.note)c.appendChild(el("div","evl",e.note));
+  var eb=el("button","evedit","✎ ערוך שעה / פרטים");eb.type="button";eb.onclick=function(){editEv(e,c,eb)};c.appendChild(eb);
   if(stu&&e.start)c.appendChild(calBtn(e));
   if(!stu){if(e.paid)c.className+=" ok";var pb=el("button","paid"+(e.paid?" yes":""),e.paid?"✓ שולם":"✗ לא שולם");pb.type="button";pb.setAttribute("aria-pressed",!!e.paid);pb.onclick=function(){e.paid=!e.paid;saveEv();drawEvents()};c.appendChild(pb);
    var wz=el("div","wz"),nav=el("a","wabtn wzb","🚗 נווט ב-Waze");nav.href=e.waze||("https://waze.com/ul?q="+encodeURIComponent(e.venue||"")+"&navigate=yes");if(!e.waze)nav.onclick=function(ev){ev.preventDefault();openApp("waze://?q="+encodeURIComponent(e.venue||"")+"&navigate=yes","https://waze.com/ul?q="+encodeURIComponent(e.venue||"")+"&navigate=yes")};nav.target="_blank";nav.rel="noopener";wz.appendChild(nav);
@@ -488,6 +509,40 @@ function drawList(stuMode,boxId,emptyId,today){
   var x=el("button","x","×");x.setAttribute("aria-label","מחק אירוע");
   x.onclick=function(){evs=evs.filter(function(o){return o!==e});saveEv();drawEvents();fillSlots()};c.appendChild(x);
   box.appendChild(c)})}
+
+/* ---- עריכת אירוע ---- */
+function tmin(t){var p=String(t).split(":");return (+p[0])*60+(+(p[1]||0))}
+function editEv(e,c,btn){
+ if(c.querySelector(".evform"))return;
+ var stu=e.type==="studio",f=el("div","gform evform"),g=el("div","ggrid");
+ function fld(lbl,type,val,wide){var l=el("label",wide?"gwide":"",lbl),i=document.createElement("input");i.type=type;if(val!=null)i.value=val;if(type==="number"){i.inputMode="numeric";i.min="0"}l.appendChild(i);g.appendChild(l);return i}
+ f.appendChild(el("b","",stu?"✎ עריכת אולפן":"✎ עריכת הופעה"));
+ var fd=fld("תאריך","date",e.date),fv,fs,fdr,fpr,fa,fb,calc=el("div","fhint");
+ if(stu){fa=fld("משעה","time",e.start||"");fb=fld("עד שעה","time",e.end||"");fv=fld("לקוח / הערה","text",e.venue||"",true)}
+ else{
+  var prep=(e.stage&&e.ready)?((tmin(e.stage)-tmin(e.ready)+1440)%1440):60;
+  fs=fld("שעת עלייה לבמה","time",e.stage||"");fv=fld("שם האולם","text",e.venue||"",true);
+  fdr=fld("נסיעה לפי Waze (דק׳)","number",e.drive||"");fpr=fld("מוכן לפני העלייה (דק׳)","number",prep);
+  var rc=function(){if(!fs.value){calc.textContent="";return}var r=addMin(fs.value,-(+fpr.value||0)),l=addMin(r,-(+fdr.value||0));calc.textContent="מוכן ב-"+r+" · יציאה מהבית ב-"+l};
+  [fs,fdr,fpr].forEach(function(i){i.addEventListener("input",rc)});rc()}
+ f.appendChild(g);f.appendChild(calc);
+ var row=el("div","row"),sv=el("button","go","שמור שינויים"),cn=el("button","tg","ביטול"),st=el("span","evl");sv.type=cn.type="button";
+ cn.onclick=function(){f.remove();btn.hidden=false};
+ sv.onclick=function(){
+  if(!fd.value){st.textContent="צריך תאריך";return}
+  var n={};for(var k in e)n[k]=e[k];
+  n.date=fd.value;n.venue=fv.value.trim().replace(/[|｜]/g," ");
+  if(stu){if(!fa.value){st.textContent="צריך שעת התחלה";return}n.start=fa.value;n.end=fb.value;
+   if(clashOf(n)&&!confirm("השעות האלה מתנגשות עם הופעה. לשמור בכל זאת?"))return}
+  else{if(!fs.value){st.textContent="צריך שעת עלייה לבמה";return}
+   var d=+fdr.value||0;n.stage=fs.value;n.ready=addMin(n.stage,-(+fpr.value||0));n.leave=addMin(n.ready,-d);if(d)n.drive=d;else delete n.drive}
+  n.id=n.date+"|"+n.type+"|"+(n.venue||"")+"|"+(n.stage||n.start||"");
+  var moved=n.date!==e.date||(n.stage||n.start)!==(e.stage||e.start);
+  for(var k2 in e)delete e[k2];for(var k3 in n)e[k3]=n[k3];
+  saveEv();drawEvents();fillSlots();
+  if(moved&&!stu)alert("✓ ההופעה עודכנה. אם הוספת אותה ליומן בטלפון, עדכן גם שם (או לחץ שוב על כפתור היומן).")};
+ row.appendChild(sv);row.appendChild(cn);row.appendChild(st);f.appendChild(row);
+ btn.hidden=true;btn.after(f);(stu?fa:fs).focus()}
 
 /* ---- סנכרון אולפן מול הופעות ---- */
 function toMin(d,t){var p=d.split("-"),h=String(t).split(":");return Date.UTC(+p[0],+p[1]-1,+p[2],+h[0],+(h[1]||0))/60000}
@@ -574,7 +629,7 @@ function score(t){
  if((t.p||2)===1)parts.push("מסומנת כחשובה");
  return{s:s,why:parts.join(" · ")}}
 /* ---- הגעתי לאולפן ---- */
-var focusT=null,PN={1:"חשוב",2:"רגיל",3:"פחות חשוב"};
+var focusT=null,stOpen=new Set(),PN={1:"חשוב",2:"רגיל",3:"פחות חשוב"};
 function drawStudio(){
  var n=new Date(),today=n.getFullYear()+"-"+pad(n.getMonth()+1)+"-"+pad(n.getDate());
  var dy=document.getElementById("stDay");dy.innerHTML="";
@@ -584,7 +639,7 @@ function drawStudio(){
  var f=document.getElementById("stFocus"),box=document.getElementById("stList");f.innerHTML="";box.innerHTML="";
  if(focusT&&focusT.t.done)focusT=null;
  if(focusT){var c=el("div","foc");c.appendChild(el("div","lb","עובד עכשיו על:"));c.appendChild(el("div","tt",focusT.t.text));var s=subText(focusT.t);if(s)c.appendChild(el("div","lb",s));
-  var pv=num(focusT.t.prog);c.appendChild(bar(pv));
+  var pv=num(focusT.t.prog);c.appendChild(bar(pv));stDet(c,focusT.t);
   var bt=el("div","bt"),d=el("button","ok2","סיימתי לעבוד על זה");d.type="button";
   var ask=el("div","ask");ask.hidden=true;
   ask.appendChild(el("div","lb","כמה מהמשימה גמור עכשיו? (לפני הישיבה: "+pv+"%)"));
@@ -603,9 +658,12 @@ function drawStudio(){
  rest.forEach(function(o){var p=o.t.p||2;
   if(p!==lastP){lastP=p;var h=el("div","sgh");var i=document.createElement("i");i.style.background="var(--p"+p+")";h.appendChild(i);h.appendChild(document.createTextNode(PN[p]));box.appendChild(h)}
   var r=el("div","sti p"+p),tx=el("div","tx");tx.appendChild(el("div","",o.t.text));var s2=subText(o.t);if(s2)tx.appendChild(el("div","ln",s2));if(num(o.t.prog)>0)tx.appendChild(bar(num(o.t.prog)));r.appendChild(tx);
-  var b=el("button","","עובד על זה");b.type="button";b.onclick=function(){focusT=o;drawStudio();document.getElementById("stv").scrollTop=0};r.appendChild(b);box.appendChild(r)})}
+  tx.setAttribute("role","button");tx.tabIndex=0;tx.appendChild(el("div","stmore",stOpen.has(o.t)?"▴ סגור פרטים":"▾ פתח פרטים"));tx.onclick=function(){if(stOpen.has(o.t))stOpen.delete(o.t);else stOpen.add(o.t);drawStudio()};tx.onkeydown=function(ev){if(ev.key==="Enter")tx.onclick()};
+  var b=el("button","","עובד על זה");b.type="button";b.onclick=function(){focusT=o;drawStudio();document.getElementById("stv").scrollTop=0};r.appendChild(b);box.appendChild(r);
+  if(stOpen.has(o.t)){var w2=el("div","stdet");w2.appendChild(panel(o.t,el("div"),null));box.appendChild(w2)}})}
+function stDet(c,t){var b=el("button","stmore",stOpen.has(t)?"▴ סגור פרטים":"▾ פתח פרטים");b.type="button";b.onclick=function(){if(stOpen.has(t))stOpen.delete(t);else stOpen.add(t);drawStudio()};c.appendChild(b);if(stOpen.has(t)){var w=el("div","stdet");w.appendChild(panel(t,el("div"),null));c.appendChild(w)}}
 document.getElementById("arrive").onclick=function(){drawStudio();var v=document.getElementById("stv");v.hidden=false;v.scrollTop=0};
-document.getElementById("stBack").onclick=function(){document.getElementById("stv").hidden=true;render()};
+document.getElementById("stBack").onclick=function(){document.getElementById("stv").hidden=true;stOpen.clear();render()};
 /* ---- גיבוי ושחזור ---- */
 document.getElementById("bkOpen").onclick=function(){var v=document.getElementById("bk");v.hidden=false;v.scrollTop=0;document.getElementById("bkSt").textContent="";document.getElementById("bkSt1").textContent=""};
 document.getElementById("bkBack").onclick=function(){document.getElementById("bk").hidden=true};

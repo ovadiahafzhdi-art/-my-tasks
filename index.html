@@ -101,6 +101,21 @@ filter:drop-shadow(0 0 6px rgba(214,175,98,.45));animation:flow 16s ease-in-out 
 .wabtn{background:#158a43;color:#fff;border-radius:10px;padding:10px 14px;font-weight:600;font-size:15px;text-decoration:none}
 button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
 .wabtn.alt{background:var(--ink);color:var(--bg)}
+.scans{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.scans .ph{font-size:14px;color:var(--mute)}
+.sclist{display:flex;flex-direction:column;gap:6px}
+.scempty{font-size:14px;color:var(--mute)}
+.scrow{display:flex;gap:8px;align-items:center;background:var(--bg);border-radius:10px;padding:4px 6px 4px 4px}
+.scopen{flex:1;text-align:start;background:none;border:0;color:var(--ink);font:inherit;font-size:15px;padding:8px;cursor:pointer;text-decoration:underline}
+.scdel{background:none;border:0;font:inherit;font-size:15px;color:var(--mute);padding:8px;cursor:pointer}
+.scadd{cursor:pointer}
+.scst{font-size:14px;color:var(--mute);align-self:center}
+.scv{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.scvbar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 14px}
+.scvx{background:#333;color:#fff;border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+.scvbody{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;color:#ccc;padding:8px}
+.scvbody img{max-width:100%;height:auto;background:#fff}
+.scpdf{width:100%;height:100%;border:0;background:#fff}
 .pays{display:flex;flex-direction:column;gap:8px}
 .pays .ph{font-size:14px;color:var(--mute)}
 .pr2{display:flex;gap:8px}
@@ -383,6 +398,7 @@ function panel(t,sb,nameEl){
  var wa=el("div","wa");host.appendChild(wa);
  var ct=el("div","wa");host.appendChild(ct);
  var cb=el("button","wabtn alt","צור הסכם");cb.type="button";cb.onclick=function(){showContract(t)};ct.appendChild(cb);
+ scanUI(t,host);
  function refresh(){
   var tot=num(t.tot),left=Math.max(tot-paid(t),0);
   rv.textContent=tot>0?fmt(left):"-";
@@ -787,6 +803,49 @@ ensureIds();snapPrev();persist();
   function(){clearTimeout(tmr);cloud=null;cst("⚠️ החיבור לענן נותק. הנתונים שמורים במכשיר.")});
  });
 })();
+
+/* ---- הסכם חתום (סריקה) ---- */
+var SC_DB=null;
+function idb(){return new Promise(function(res){if(SC_DB)return res(SC_DB);try{var r=indexedDB.open("scans",1);r.onupgradeneeded=function(){r.result.createObjectStore("s")};r.onsuccess=function(){SC_DB=r.result;res(SC_DB)};r.onerror=function(){res(null)}}catch(e){res(null)}})}
+function idbDo(mode,fn){return idb().then(function(db){if(!db)return null;return new Promise(function(res){try{var tx=db.transaction("s",mode),q=fn(tx.objectStore("s"));tx.oncomplete=function(){res(q&&q.result)};tx.onerror=function(){res(null)}}catch(e){res(null)}})})}
+function scRef(id){try{var u=firebase.auth().currentUser;return u?firebase.firestore().collection("users").doc(u.uid).collection("app").doc("scan-"+id):null}catch(e){return null}}
+var SC_MAX=900000;
+function readURL(f){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=rej;r.readAsDataURL(f)})}
+function shrink(file){
+ if(file.type==="application/pdf")return readURL(file).then(function(d){if(d.length>SC_MAX)throw new Error("big");return{d:d,ty:"pdf"}});
+ return new Promise(function(res,rej){var u=URL.createObjectURL(file),im=new Image();
+  im.onload=function(){var W=im.naturalWidth,H=im.naturalHeight,m=1800,s=Math.min(1,m/Math.max(W,H)),cv=document.createElement("canvas"),q=0.75,d;
+   for(var k=0;k<8;k++){cv.width=Math.round(W*s);cv.height=Math.round(H*s);var x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);x.drawImage(im,0,0,cv.width,cv.height);
+    d=cv.toDataURL("image/jpeg",q);if(d.length<=SC_MAX)break;if(q>0.5)q-=0.1;else s*=0.8}
+   URL.revokeObjectURL(u);if(d.length>SC_MAX)rej(new Error("big"));else res({d:d,ty:"img"})};
+  im.onerror=function(){URL.revokeObjectURL(u);rej(new Error("read"))};im.src=u})}
+function getScan(id){return idbDo("readonly",function(s){return s.get(id)}).then(function(v){if(v)return v;var r=scRef(id);if(!r)return null;
+ return r.get().then(function(x){if(!x.exists)return null;var v=x.data();idbDo("readwrite",function(s){return s.put(v,id)});return v}).catch(function(){return null})})}
+function scanUI(t,host){
+ var w=el("div","scans full");host.appendChild(w);
+ w.appendChild(el("div","ph","📎 הסכם חתום"));
+ var list=el("div","sclist");w.appendChild(list);
+ var row=el("div","wa"),lb=el("label","wabtn alt scadd","📷 צרף הסכם חתום"),inp=document.createElement("input"),st=el("span","scst");
+ inp.type="file";inp.accept="image/*,application/pdf";inp.hidden=true;lb.appendChild(inp);row.appendChild(lb);row.appendChild(st);w.appendChild(row);
+ function draw(){list.innerHTML="";var a=t.scans||[];if(!a.length){list.appendChild(el("div","scempty","עוד לא צורף הסכם חתום"));return}
+  a.forEach(function(s,i){var r=el("div","scrow"),nm=el("button","scopen",(s.ty==="pdf"?"📄 ":"🖼️ ")+"הסכם חתום"+(a.length>1?" "+(i+1):"")+" · "+new Date(s.at).toLocaleDateString("he-IL"));nm.type="button";nm.onclick=function(){viewScan(s)};
+   var x=el("button","scdel","🗑");x.type="button";x.setAttribute("aria-label","מחק סריקה");
+   x.onclick=function(){if(x.dataset.arm!=="1"){x.dataset.arm="1";x.textContent="למחוק?";setTimeout(function(){x.dataset.arm="";x.textContent="🗑"},4000);return}
+    t.scans=(t.scans||[]).filter(function(o){return o.id!==s.id});save();idbDo("readwrite",function(q){return q.delete(s.id)});var rf=scRef(s.id);if(rf)rf.delete().catch(function(){});draw()};
+   r.appendChild(nm);r.appendChild(x);list.appendChild(r)})}
+ inp.onchange=function(){var f=inp.files&&inp.files[0];inp.value="";if(!f)return;st.textContent="מעבד...";
+  shrink(f).then(function(o){var id=Date.now().toString(36)+Math.random().toString(36).slice(2,6),rec={d:o.d,ty:o.ty,task:t.id,at:Date.now()};
+   return idbDo("readwrite",function(q){return q.put(rec,id)}).then(function(){var rf=scRef(id);t.scans=(t.scans||[]).concat([{id:id,ty:o.ty,at:rec.at}]);save();draw();
+    if(!rf){st.textContent="✓ נשמר במכשיר (התחבר לענן כדי שיופיע גם במכשירים האחרים)";return}
+    st.textContent="שומר בענן...";return rf.set(rec).then(function(){st.textContent="✓ ההסכם נשמר בכרטיס של הלקוח"}).catch(function(){st.textContent="⚠️ נשמר במכשיר. השמירה בענן נכשלה."})})})
+  .catch(function(e){st.textContent=e&&e.message==="big"?"הקובץ גדול מדי. נסה לצלם תמונה במקום PDF.":"לא הצלחתי לקרוא את הקובץ. נסה שוב."})};
+ draw()}
+function viewScan(s){var ov=el("div","scv"),bar=el("div","scvbar"),cl=el("button","scvx","✕ סגור"),body=el("div","scvbody","טוען...");cl.type="button";cl.onclick=function(){ov.remove();DOCOPEN=false};
+ bar.appendChild(cl);ov.appendChild(bar);ov.appendChild(body);document.body.appendChild(ov);DOCOPEN=true;
+ getScan(s.id).then(function(v){if(!v){body.textContent="לא הצלחתי לטעון את הסריקה. בדוק חיבור לאינטרנט.";return}body.textContent="";
+  var dl=el("a","wabtn","⬇️ שמור / שתף");dl.href=v.d;dl.download="הסכם-חתום."+(v.ty==="pdf"?"pdf":"jpg");bar.appendChild(dl);
+  if(v.ty==="pdf"){var o=document.createElement("iframe");o.src=v.d;o.className="scpdf";o.title="הסכם חתום";body.appendChild(o)}
+  else{var im=document.createElement("img");im.src=v.d;im.alt="הסכם חתום";body.appendChild(im)}})}
 /* ---- עורך מסמך במסך מלא ---- */
 var docCb=null;
 function openDoc(t,key,title,cb){DOCOPEN=true;docCb=cb;var v=document.getElementById("docv"),ta=document.getElementById("docTa");

@@ -55,6 +55,8 @@ h1{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:36px;font-weight:700;m
 .zr span small{color:var(--mute);font-size:13px;margin-inline-start:6px}
 .zr.past{opacity:.45}
 .zr.nowz{color:#f3dfa8}
+.lnk{display:flex;gap:10px;align-items:center;margin-top:16px;font-size:14px;color:var(--mute)}
+.lnk input{width:20px;height:20px;accent-color:#c9a25a}
 .foot{color:var(--mute);font-size:13px;text-align:center;margin-top:16px}
 .foot a{color:#c9a25a}
 </style>
@@ -71,6 +73,7 @@ h1{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:36px;font-weight:700;m
 <div id="cards"></div>
 <div class="week" id="week"></div>
 <div class="zm"><h3>זמני היום</h3><div id="zm"></div></div>
+<label class="lnk"><input type="checkbox" id="lnk"> סימון כאן מסמן גם את התזכורת באייפון (דרך הקיצור "התפללתי")</label>
 <div class="foot">הזמנים לפי ירושלים · שעות זמניות: גר״א מהנץ עד השקיעה, מג״א מעלות השחר (16.1°) עד צאת הכוכבים (16.1°) · צאת הכוכבים = 20 דק׳ אחרי השקיעה<br><a href="./">← המשימות שלי</a></div>
 </main>
 <script>
@@ -122,6 +125,9 @@ function zmanim(d){var s=sunTimes(d),a=sunTimes(d,106.1),n=sunTimes(addD(d,1)),R
 function drawZ(isToday){var box=document.getElementById("zm"),now=new Date(),list=zmanim(cur),nextShown=false;box.innerHTML="";
  list.forEach(function(z){var r=document.createElement("div"),past=isToday&&z[2]<now;r.className="zr"+(past?" past":"");if(isToday&&!past&&!nextShown){r.className+=" nowz";nextShown=true}
   var l=document.createElement("span");l.textContent=z[0];if(z[1]){var sm=document.createElement("small");sm.textContent=z[1];l.appendChild(sm)}var v=document.createElement("b");v.textContent=hm(z[2]);r.appendChild(l);r.appendChild(v);box.appendChild(r)})}
+var SCN="התפללתי",KW={s:"הנץ",m:"מנחה",a:"ערבית"};
+function linkOn(){try{return localStorage.getItem("tfila-link")!=="0"}catch(e){return true}}
+function runSC(k){location.href="shortcuts://run-shortcut?name="+encodeURIComponent(SCN)+"&input=text&text="+encodeURIComponent(KW[k])}
 var cur=new Date();cur.setHours(12,0,0,0);
 function render(){
  var now=new Date(),key=ymd(cur),isToday=key===ymd(now),t=times(cur),I=info(cur),N=info(addD(cur,1)),m=marks[key]||{};
@@ -149,7 +155,7 @@ function render(){
   var tm=document.createElement("div");tm.className="tm";p.rows.forEach(function(r){var s=document.createElement("span");s.textContent=r[0]+" ";var bb=document.createElement("b");bb.textContent=hm(r[1]);s.appendChild(bb);tm.appendChild(s)});c.appendChild(tm);
   var ad=p.add.filter(Boolean);if(ad.length){var a=document.createElement("div");a.className="add";a.textContent="לא לשכוח: "+ad.join(" · ");c.appendChild(a)}
   var btn=document.createElement("button");btn.type="button";btn.className="chk";btn.textContent=m[p.k]?"✓ התפללתי":"סמן שהתפללתי";btn.setAttribute("aria-pressed",!!m[p.k]);
-  btn.onclick=function(){var mm=marks[key]=marks[key]||{};if(mm[p.k])delete mm[p.k];else mm[p.k]=Date.now();saveM();render()};c.appendChild(btn);box.appendChild(c)});
+  btn.onclick=function(){var mm=marks[key]=marks[key]||{},on=!mm[p.k];if(on)mm[p.k]=Date.now();else delete mm[p.k];saveM();render();if(on&&isToday&&linkOn())runSC(p.k)};c.appendChild(btn);box.appendChild(c)});
  drawZ(isToday);
  var wk=document.getElementById("week");wk.innerHTML="";var DN=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
  for(var i=6;i>=0;i--){(function(d){var k=ymd(d),mm=marks[k]||{},e=document.createElement("div");e.className="wd"+(k===key?" cur":"")+(d.getDay()===6?" sh":"");
@@ -159,6 +165,7 @@ function render(){
 document.getElementById("pv").onclick=function(){cur=addD(cur,-1);render()};
 document.getElementById("nx").onclick=function(){cur=addD(cur,1);render()};
 document.getElementById("today").onclick=function(){cur=new Date();cur.setHours(12,0,0,0);render()};
+var lk=document.getElementById("lnk");lk.checked=linkOn();lk.onchange=function(){try{localStorage.setItem("tfila-link",lk.checked?"1":"0")}catch(e){}};
 render();setInterval(function(){if(ymd(cur)===ymd(new Date()))render()},60000);
 </script>
 </body>

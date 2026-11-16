@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>התפילות שלי</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="icon" href="apple-touch-icon.png?v=2">
+<meta name="apple-mobile-web-app-title" content="התפילות שלי">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0c0a;--surface:#181611;--ink:#f3ede1;--mute:#a69d8a;--line:#332e24;--accent:#c9a25a;--on-accent:#15120c;--ok:#4fa36b;--gold:linear-gradient(135deg,#f3dfa8 0%,#c9a25a 45%,#9a7a3c 100%);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(120% 55% at 50% -10%,#2b2418 0%,var(--bg) 62%) fixed,var(--bg);color:var(--ink);font-family:"Heebo",system-ui,-apple-system,Arial,sans-serif;font-size:17px;line-height:1.45;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+main{max-width:560px;margin:0 auto;padding:16px 16px 48px}
+.bsd{text-align:left;font-weight:800;color:#c9a25a;font-size:14px}
+h1{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:36px;font-weight:700;margin:4px 0 0;text-align:center;background:var(--gold);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 4px}
+.dnav button{font:inherit;font-size:20px;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.dnav .mid{text-align:center;flex:1}
+.dnav .heb{font-family:"Frank Ruhl Libre",Georgia,serif;font-size:22px;font-weight:700;color:#e9d39b}
+.dnav .greg{font-size:14px;color:var(--mute)}
+#today[hidden]{display:none}
+#today{display:block;margin:0 auto 10px;font:inherit;font-size:13px;color:var(--mute);background:none;border:0;text-decoration:underline;cursor:pointer}
+.ban{border-radius:14px;padding:10px 14px;margin:8px 0;font-weight:700;text-align:center;border:1.5px solid #c9a25a;background:rgba(201,162,90,.10);color:#f3dfa8}
+.ban.shab{border-color:#6f86c9;background:rgba(111,134,201,.12);color:#cfdaf7}
+.next{background:var(--gold);color:var(--on-accent);border-radius:14px;padding:12px 14px;margin:10px 0 14px;text-align:center;font-weight:800}
+.next small{display:block;font-weight:600;opacity:.8}
+.card{background:linear-gradient(180deg,#1c1914,#16140f);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:12px;box-shadow:0 6px 18px rgba(0,0,0,.35);border-inline-start:6px solid #c9a25a}
+.card.done{border-inline-start-color:var(--ok);opacity:.85}
+.card h2{margin:0;font-family:"Frank Ruhl Libre",Georgia,serif;font-size:24px;color:#e9d39b;display:flex;justify-content:space-between;align-items:center}
+.card h2 span{font-family:Heebo,sans-serif;font-size:14px;font-weight:600;color:var(--mute)}
+.tm{display:flex;flex-wrap:wrap;gap:6px 16px;margin:8px 0 2px;font-size:15px;color:var(--mute)}
+.tm b{color:var(--ink);font-weight:700;direction:ltr;display:inline-block}
+.add{color:#f3dfa8;font-weight:700;font-size:15px;margin-top:6px}
+.chk{display:block;width:100%;margin-top:12px;font:inherit;font-weight:800;font-size:18px;padding:12px;border-radius:12px;cursor:pointer;border:1.5px solid #c9a25a;background:transparent;color:#f3dfa8}
+.card.done .chk{background:var(--ok);border-color:var(--ok);color:#0d1a11}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:18px 0 8px}
+.wd{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 2px;text-align:center;font-size:12px;color:var(--mute);cursor:pointer}
+.wd.cur{border-color:#c9a25a}
+.wd .dots{display:flex;justify-content:center;gap:3px;margin-top:5px}
+.wd i{width:8px;height:8px;border-radius:50%;background:#3a352b;display:block}
+.wd i.y{background:var(--ok)}
+.wd.sh{opacity:.5}
+.foot{color:var(--mute);font-size:13px;text-align:center;margin-top:16px}
+.foot a{color:#c9a25a}
+</style>
+</head>
+<body>
+<main>
+<div class="bsd">בס״ד</div>
+<h1>התפילות שלי</h1>
+<div class="dnav"><button id="pv" type="button" aria-label="היום הקודם">›</button><div class="mid"><div class="heb" id="heb"></div><div class="greg" id="greg"></div></div><button id="nx" type="button" aria-label="היום הבא">‹</button></div>
+<button id="today" type="button" hidden>חזרה להיום</button>
+<div id="bans"></div>
+<div id="next"></div>
+<div id="cards"></div>
+<div class="week" id="week"></div>
+<div class="foot">הזמנים לפי ירושלים · צאת הכוכבים = 20 דק׳ אחרי השקיעה · חצות = אמצע הלילה<br><a href="./">← המשימות שלי</a></div>
+</main>
+<script>
+var LAT=31.7767,LNG=35.2345,KEY="tfila-v1",TZ="Asia/Jerusalem";
+var marks={};try{marks=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
+function saveM(){try{localStorage.setItem(KEY,JSON.stringify(marks))}catch(e){}}
+function pad(n){return("0"+n).slice(-2)}
+function ymd(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function addD(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x}
+function hm(t){return t?pad(t.getHours())+":"+pad(t.getMinutes()):"--:--"}
+/* זריחה ושקיעה (אלגוריתם NOAA) */
+function sunTimes(d){
+ var rad=Math.PI/180,deg=180/Math.PI;
+ function calc(rising){
+  var jd=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5+2440587.5,T=(jd-2451545)/36525;
+  var L0=(280.46646+T*(36000.76983+0.0003032*T))%360,M=357.52911+T*(35999.05029-0.0001537*T),e=0.016708634-T*(0.000042037+0.0000001267*T);
+  var C=Math.sin(M*rad)*(1.914602-T*(0.004817+0.000014*T))+Math.sin(2*M*rad)*(0.019993-0.000101*T)+Math.sin(3*M*rad)*0.000289;
+  var om=125.04-1934.136*T,lam=L0+C-0.00569-0.00478*Math.sin(om*rad);
+  var eps0=23+(26+(21.448-T*(46.815+T*(0.00059-T*0.001813)))/60)/60,eps=eps0+0.00256*Math.cos(om*rad);
+  var dec=Math.asin(Math.sin(eps*rad)*Math.sin(lam*rad))*deg,y=Math.pow(Math.tan(eps*rad/2),2);
+  var eqt=4*deg*(y*Math.sin(2*L0*rad)-2*e*Math.sin(M*rad)+4*e*y*Math.sin(M*rad)*Math.cos(2*L0*rad)-0.5*y*y*Math.sin(4*L0*rad)-1.25*e*e*Math.sin(2*M*rad));
+  var ha=Math.acos(Math.cos(90.833*rad)/(Math.cos(LAT*rad)*Math.cos(dec*rad))-Math.tan(LAT*rad)*Math.tan(dec*rad))*deg;
+  var mins=720-4*(LNG+(rising?ha:-ha))-eqt;
+  return mins}
+ function at(rising){var m=calc(rising);return new Date(Math.round((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())+m*6e4)/6e4)*6e4)}
+ return{rise:at(true),set:at(false)}}
+/* תאריך עברי */
+var MN={Tishri:"תשרי",Heshvan:"חשון",Kislev:"כסלו",Tevet:"טבת",Shevat:"שבט","Adar I":"אדר א׳",Adar:"אדר","Adar II":"אדר ב׳",Nisan:"ניסן",Iyar:"אייר",Sivan:"סיון",Tamuz:"תמוז",Av:"אב",Elul:"אלול"};
+function heb(d){var p={};new Intl.DateTimeFormat("en-u-ca-hebrew",{day:"numeric",month:"long",year:"numeric"}).formatToParts(d).forEach(function(x){p[x.type]=x.value});return{d:+p.day,m:p.month,y:+p.year}}
+function gem(n){var L=[[400,"ת"],[300,"ש"],[200,"ר"],[100,"ק"],[90,"צ"],[80,"פ"],[70,"ע"],[60,"ס"],[50,"נ"],[40,"מ"],[30,"ל"],[20,"כ"],[10,"י"],[9,"ט"],[8,"ח"],[7,"ז"],[6,"ו"],[5,"ה"],[4,"ד"],[3,"ג"],[2,"ב"],[1,"א"]],s="";
+ if(n===15)s="טו";else if(n===16)s="טז";else{L.forEach(function(x){while(n>=x[0]){s+=x[1];n-=x[0]}})}
+ return s.length>1?s.slice(0,-1)+"״"+s.slice(-1):s+"׳"}
+function hebStr(d){var h=heb(d);return gem(h.d)+" "+MN[h.m]+" "+gem(h.y%1000)}
+function info(d){/* מה מיוחד ביום הזה */
+ var h=heb(d),r={rc:false,yv:false,an:false,yt:"",shab:d.getDay()===6,name:""};
+ if(h.d===1||h.d===30){r.rc=r.yv=true;r.name="ראש חודש"}
+ if(h.m==="Tishri"){if(h.d<=2){r.yt="ראש השנה";r.rc=false;r.name=""}if(h.d===10)r.yt="יום כיפור";if(h.d===15)r.yt="סוכות";if(h.d>15&&h.d<22){r.yv=true;r.name="חול המועד סוכות"}if(h.d===22)r.yt="שמיני עצרת"}
+ if(h.m==="Nisan"){if(h.d===15)r.yt="פסח";if(h.d>15&&h.d<21){r.yv=true;r.name="חול המועד פסח"}if(h.d===21)r.yt="שביעי של פסח"}
+ if(h.m==="Sivan"&&h.d===6)r.yt="שבועות";
+ if(r.yt)r.yv=true;
+ if(h.m==="Kislev"&&h.d>=25)r.an="חנוכה";
+ if(h.m==="Tevet"){var lastK=heb(addD(d,-h.d)).d;if(h.d<=(lastK===30?2:3))r.an="חנוכה"}
+ if((h.m==="Adar"||h.m==="Adar II")&&(h.d===14||h.d===15))r.an=h.d===15?"שושן פורים (בירושלים)":"פורים";
+ return r}
+function times(d){var s=sunTimes(d),n=sunTimes(addD(d,1));return{rise:s.rise,set:s.set,tzeit:new Date(+s.set+20*6e4),chatzot:new Date((+s.set+(+n.rise))/2)}}
+var cur=new Date();cur.setHours(12,0,0,0);
+function render(){
+ var now=new Date(),key=ymd(cur),isToday=key===ymd(now),t=times(cur),I=info(cur),N=info(addD(cur,1)),m=marks[key]||{};
+ document.getElementById("heb").textContent=hebStr(cur);
+ document.getElementById("greg").textContent=new Intl.DateTimeFormat("he-IL",{weekday:"long",day:"numeric",month:"long"}).format(cur);
+ document.getElementById("today").hidden=isToday;
+ var b=document.getElementById("bans");b.innerHTML="";
+ function ban(txt,cls){var e=document.createElement("div");e.className="ban"+(cls?" "+cls:"");e.textContent=txt;b.appendChild(e)}
+ if(I.shab||I.yt)ban((I.shab?"שבת שלום":"")+(I.shab&&I.yt?" · ":"")+(I.yt?I.yt+" – חג שמח":"")+" · בלי התראות","shab");
+ else if(cur.getDay()===5||N.yt)ban("ערב "+(N.yt||"שבת")+" · משקיעה "+hm(t.set)+" בלי התראות","shab");
+ if(I.name)ban(I.name+" · יעלה ויבוא");
+ if(I.an)ban(I.an+" · על הניסים");
+ var P=[
+  {k:"s",n:"שחרית",sub:"נץ החמה",rows:[["תזכורת",new Date(+t.rise-30*6e4)],["נץ",t.rise]],due:t.rise,add:[I.yv?"יעלה ויבוא":"",I.an?"על הניסים":"",I.rc||I.name.indexOf("חול")===0?"הלל":""]},
+  {k:"m",n:"מנחה",sub:"עד השקיעה",rows:[["תזכורת",new Date(+t.set-30*6e4)],["שקיעה",t.set]],due:t.set,add:[I.yv?"יעלה ויבוא":"",I.an?"על הניסים":""]},
+  {k:"a",n:"ערבית",sub:"עד חצות",rows:[["צאת הכוכבים",t.tzeit],["חצות",t.chatzot]],due:t.chatzot,add:[N.yv?"יעלה ויבוא":"",N.an?"על הניסים":""]}];
+ var nx=document.getElementById("next");nx.innerHTML="";nx.className="";
+ if(isToday){var up=P.filter(function(p){return!m[p.k]&&now<p.due})[0];
+  if(up){var mins=Math.round((up.due-now)/6e4),left=mins>=60?Math.floor(mins/60)+" שע׳ ו-"+(mins%60)+" דק׳":mins+" דק׳";
+   nx.className="next";nx.innerHTML="";nx.appendChild(document.createTextNode("הבאה בתור: "+up.n));var sm=document.createElement("small");sm.textContent=(up.k==="s"?"עד הנץ":up.k==="m"?"עד השקיעה":"עד חצות")+" נשארו "+left;nx.appendChild(sm)}
+  else nx.className=""}
+ var box=document.getElementById("cards");box.innerHTML="";
+ P.forEach(function(p){var c=document.createElement("div");c.className="card"+(m[p.k]?" done":"");
+  var h2=document.createElement("h2");h2.textContent=p.n;var sp=document.createElement("span");sp.textContent=p.sub;h2.appendChild(sp);c.appendChild(h2);
+  var tm=document.createElement("div");tm.className="tm";p.rows.forEach(function(r){var s=document.createElement("span");s.textContent=r[0]+" ";var bb=document.createElement("b");bb.textContent=hm(r[1]);s.appendChild(bb);tm.appendChild(s)});c.appendChild(tm);
+  var ad=p.add.filter(Boolean);if(ad.length){var a=document.createElement("div");a.className="add";a.textContent="לא לשכוח: "+ad.join(" · ");c.appendChild(a)}
+  var btn=document.createElement("button");btn.type="button";btn.className="chk";btn.textContent=m[p.k]?"✓ התפללתי":"סמן שהתפללתי";btn.setAttribute("aria-pressed",!!m[p.k]);
+  btn.onclick=function(){var mm=marks[key]=marks[key]||{};if(mm[p.k])delete mm[p.k];else mm[p.k]=Date.now();saveM();render()};c.appendChild(btn);box.appendChild(c)});
+ var wk=document.getElementById("week");wk.innerHTML="";var DN=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"];
+ for(var i=6;i>=0;i--){(function(d){var k=ymd(d),mm=marks[k]||{},e=document.createElement("div");e.className="wd"+(k===key?" cur":"")+(d.getDay()===6?" sh":"");
+  e.appendChild(document.createTextNode(DN[d.getDay()]+" "+d.getDate()+"."+(d.getMonth()+1)));var ds=document.createElement("div");ds.className="dots";["s","m","a"].forEach(function(x){var ii=document.createElement("i");if(mm[x])ii.className="y";ds.appendChild(ii)});e.appendChild(ds);
+  e.onclick=function(){cur=new Date(d);render()};wk.appendChild(e)})(addD(new Date(new Date().setHours(12,0,0,0)),-i))}
+}
+document.getElementById("pv").onclick=function(){cur=addD(cur,-1);render()};
+document.getElementById("nx").onclick=function(){cur=addD(cur,1);render()};
+document.getElementById("today").onclick=function(){cur=new Date();cur.setHours(12,0,0,0);render()};
+render();setInterval(function(){if(ymd(cur)===ymd(new Date()))render()},60000);
+</script>
+</body>
+</html>

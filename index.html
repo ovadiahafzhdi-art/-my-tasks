@@ -397,8 +397,8 @@ function drawContract(){
  var sr=h2.attachShadow?h2.attachShadow({mode:"open"}):h2;sr.innerHTML="<style>"+css+"</style>"+doc.body.innerHTML}
 function showContract(t){cvT=t;document.getElementById("cvMe").value=legalName();document.getElementById("cvBiz").value=bizName();document.getElementById("cvSt").textContent="";document.getElementById("cvTxt").hidden=true;drawContract();document.getElementById("cv").hidden=false;document.getElementById("cv").scrollTop=0}
 document.getElementById("cvBack").onclick=function(){document.getElementById("cv").hidden=true};
-document.getElementById("cvMe").oninput=function(){state.legal=this.value.trim();save();drawContract()};
-document.getElementById("cvBiz").oninput=function(){state.biz=this.value.trim();save();drawContract()};
+document.getElementById("cvMe").oninput=function(){state.legal=this.value.trim();prefTouch();save();drawContract()};
+document.getElementById("cvBiz").oninput=function(){state.biz=this.value.trim();prefTouch();save();drawContract()};
 document.getElementById("cvCopy").onclick=async function(){
  var st=document.getElementById("cvSt"),tx=document.getElementById("cvTxt"),s=contractText(cvT);tx.value=s;
  try{await navigator.clipboard.writeText(s);st.textContent="ההסכם הועתק. אפשר להדביק בוואטסאפ ולשלוח ללקוח."}
@@ -773,10 +773,13 @@ function mergeData(A,B){
  if(!lists.length)lists=[{id:"general",name:"כללי",tasks:[]}];
  var E={},eo=[];((A.events||[]).concat(B.events||[])).forEach(function(e){if(!e||!e.id)return;if(!E[e.id])eo.push(e.id);E[e.id]=pick(E[e.id],e)});
  var events=eo.map(function(id){return E[id]}).filter(function(e){return alive(e,del.e[e.id])});
- return{tasks:{lists:lists,cur:(A.tasks&&A.tasks.cur)||lists[0].id},events:events,del:del}}
+ var ta=A.tasks||{},tb=B.tasks||{},src=(+tb.pu||0)>(+ta.pu||0)?tb:ta,T={lists:lists,cur:ta.cur||lists[0].id};
+ PK.forEach(function(k){if(src[k]!=null)T[k]=src[k]});if(src.pu)T.pu=src.pu;
+ return{tasks:T,events:events,del:del}}
+var PK=["mysig","legal","biz"];function prefTouch(){state.pu=Date.now()}
 function plain(x){return JSON.parse(JSON.stringify(x))}
 function localData(){return plain({tasks:state,events:evs,del:DEL})}
-function sig(d){return JSON.stringify({l:d.tasks.lists,e:d.events})}
+function sig(d){var p={};PK.concat("pu").forEach(function(k){p[k]=d.tasks[k]});return JSON.stringify({l:d.tasks.lists,e:d.events,p:p})}
 function scheduleSync(){if(!cloud)return;cst("☁️ שומר בענן...");clearTimeout(cTimer);cTimer=setTimeout(pushCloud,1000)}
 async function pushCloud(){if(!cloud||!FDB)return;if(cBusy){cAgain=true;return}cBusy=true;var merged=null;
  try{await FDB.runTransaction(function(tx){return tx.get(cloud).then(function(s){var mine=localData();merged=s.exists?mergeData(mine,s.data()):mine;
@@ -876,7 +879,7 @@ ensureIds();snapPrev();persist();
  document.getElementById("cvMySig").onclick=function(){ov.hidden=false;fit();st(state.mysig?"יש לך חתימה שמורה. אפשר לחתום מחדש כדי להחליף.":"");if(state.mysig){var im=new Image();im.onload=function(){var r=cv.getBoundingClientRect(),k=Math.min(1,(r.width-40)/im.width,(r.height-40)/im.height);cx.drawImage(im,(r.width-im.width*k)/2,(r.height-im.height*k)/2,im.width*k,im.height*k);n=0};im.src=state.mysig}};
  document.getElementById("sgClr").onclick=function(){cx.clearRect(0,0,cv.width,cv.height);n=0;st("")};
  document.getElementById("sgX").onclick=function(){ov.hidden=true};
- document.getElementById("sgSave").onclick=function(){if(!n){st(state.mysig?"לא שינית את החתימה.":"קודם תחתום בתיבה הלבנה.");return}var d=trimmed();if(!d){st("קודם תחתום בתיבה הלבנה.");return}state.mysig=d;save();if(typeof drawContract==="function"&&cvT)drawContract();st("✓ החתימה נשמרה ותופיע בכל ההסכמים.");setTimeout(function(){ov.hidden=true},900)};
+ document.getElementById("sgSave").onclick=function(){if(!n){st(state.mysig?"לא שינית את החתימה.":"קודם תחתום בתיבה הלבנה.");return}var d=trimmed();if(!d){st("קודם תחתום בתיבה הלבנה.");return}state.mysig=d;prefTouch();save();if(typeof drawContract==="function"&&cvT)drawContract();st("✓ החתימה נשמרה ותופיע בכל ההסכמים.");setTimeout(function(){ov.hidden=true},900)};
  if(/[?&]mysig\b/.test(location.search))setTimeout(function(){document.getElementById("cvMySig").click()},1200);
  document.getElementById("sgImg").onchange=function(){var f=this.files&&this.files[0];this.value="";if(!f)return;st("מעבד את התמונה...");
   var u=URL.createObjectURL(f),im=new Image();im.onload=function(){
@@ -903,7 +906,7 @@ ensureIds();snapPrev();persist();
    var url=o.toDataURL("image/png");cx.clearRect(0,0,cv.width,cv.height);var r=cv.getBoundingClientRect(),q=Math.min((r.width-30)/o.width,(r.height-30)/o.height,1.5);
    var pi=new Image();pi.onload=function(){cx.drawImage(pi,(r.width-o.width*q)/2,(r.height-o.height*q)/2,o.width*q,o.height*q);n=1;st("✓ החתימה זוהתה. אם היא נראית טוב, לחץ \"שמור חתימה\".")};pi.src=url};
   im.onerror=function(){URL.revokeObjectURL(u);st("לא הצלחתי לפתוח את התמונה.")};im.src=u};
- document.getElementById("sgDel").onclick=function(){if(!state.mysig){st("אין חתימה שמורה.");return}if(!confirm("למחוק את החתימה השמורה?"))return;delete state.mysig;save();if(cvT)drawContract();cx.clearRect(0,0,cv.width,cv.height);st("החתימה נמחקה.")};
+ document.getElementById("sgDel").onclick=function(){if(!state.mysig){st("אין חתימה שמורה.");return}if(!confirm("למחוק את החתימה השמורה?"))return;delete state.mysig;prefTouch();save();if(cvT)drawContract();cx.clearRect(0,0,cv.width,cv.height);st("החתימה נמחקה.")};
 })();
 /* ---- חתימה דיגיטלית מרחוק ---- */
 function signsCol(){return firebase.firestore().collection("signs")}

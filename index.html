@@ -136,6 +136,23 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 .pr2 input{flex:1;min-width:0}
 .pr2 button{padding:0 16px}
 .pay{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:10px;padding:6px 12px}
+.sub2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.sub2 .tab{width:100%;text-align:center;padding:10px 8px;font-size:16px;border-radius:12px}
+#jobsPane #sum{display:none}
+.pyh{font-weight:800;font-size:16px;margin:18px 2px 8px;color:#c9a25a}
+.pysum{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.pysum div{background:linear-gradient(180deg,#1c1914,#16140f);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.pysum b{display:block;font-size:19px;font-weight:800}.pysum span{font-size:13px;color:var(--mute)}
+.pysum .due b{color:#e8a25a}.pysum .ok b{color:#7fc98a}
+.pyr{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.pyr .t1{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.pyr .t1 .lft{color:#e8a25a;white-space:nowrap}.pyr.full .t1 .lft{color:#7fc98a}
+.pyr .t2{font-size:13px;color:var(--mute);margin-top:3px}
+.pyr .t3{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pyr .t3 input{width:110px;flex:none}
+.pyr .t3 button,.pyr .t3 a{font:inherit;font-size:13px;padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-decoration:none}
+.pyl{display:flex;justify-content:space-between;font-size:14px;padding:7px 4px;border-bottom:1px solid var(--line)}
+.pyl span:last-child{color:#7fc98a;font-weight:700}
 .sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
 .sum div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .sum b{display:block;font-size:18px;font-weight:800}
@@ -260,6 +277,9 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <button class="arrive" id="arrive" type="button">🎹 הגעתי לאולפן</button>
 <div class="seg"><button type="button" class="tab" id="segt" aria-selected="true">משימות</button><button type="button" class="tab" id="segs" aria-selected="false">לו״ז הופעות</button><button type="button" class="tab" id="segu" aria-selected="false">לו״ז אולפן</button><button type="button" class="tab" id="segf" aria-selected="false">לו״ז פנוי</button></div>
 <div id="tasksView">
+<div class="sub2"><button type="button" class="tab" id="subJ" aria-selected="true">📋 עבודות</button><button type="button" class="tab" id="subP" aria-selected="false">💰 תשלומים</button></div>
+<div id="paysPane" hidden></div>
+<div id="jobsPane">
 <div class="tabs" id="tabs" role="tablist"></div>
 <form class="new" id="form"><input type="text" id="inp" placeholder="משימה חדשה" autocomplete="off" aria-label="משימה חדשה"><button class="go" type="submit">הוסף</button></form>
 <div class="prio" id="prio" role="radiogroup" aria-label="חשיבות"></div>
@@ -267,6 +287,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <ul id="list"></ul>
 <div class="sum" id="sum"></div>
 <div class="foot"><button id="clear" type="button">נקה משימות שבוצעו</button><button id="delList" type="button">מחק רשימה</button></div>
+</div>
 </div>
 <section id="schedView" hidden>
 <div class="paste"><div class="gform"><b>➕ הוספת הופעה</b>
@@ -446,7 +467,7 @@ function panel(t,sb,nameEl){
   updateSum()}
  refresh();return d}
 function render(){
- var c=cur();state.cur=c.id;updateSum();
+ var c=cur();state.cur=c.id;updateSum();setTimeout(function(){if(typeof drawPayments==="function")drawPayments()},0);
  var tabs=document.getElementById("tabs");tabs.innerHTML="";
  state.lists.forEach(function(l){
   var open=l.tasks.filter(function(t){return!t.done}).length;
@@ -1030,6 +1051,35 @@ function checkUpdate(){try{fetch(location.pathname+"?u="+Date.now(),{cache:"no-s
 setTimeout(checkUpdate,3000);document.addEventListener("visibilitychange",function(){if(!document.hidden)checkUpdate()});
 
 /* ---- פתיחה באפליקציה ולא באתר ---- */
+
+/* ---- עבודות / תשלומים ---- */
+function setSub(v){try{localStorage.setItem("tsub",v)}catch(e){}document.getElementById("subJ").setAttribute("aria-selected",v!=="p");document.getElementById("subP").setAttribute("aria-selected",v==="p");
+ document.getElementById("jobsPane").hidden=v==="p";document.getElementById("paysPane").hidden=v!=="p";if(v==="p")drawPayments()}
+document.getElementById("subJ").onclick=function(){setSub("j")};
+document.getElementById("subP").onclick=function(){setSub("p")};
+function pDate(d){var m=String(d||"").match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1]):null}
+function drawPayments(){var box=document.getElementById("paysPane");if(box.hidden)return;box.innerHTML="";
+ var jobs=[],logs=[],now=new Date(),mon=0;
+ state.lists.forEach(function(l){l.tasks.forEach(function(t){var m=money(t);if(m.tot>0||paid(t)>0)jobs.push({t:t,l:l,m:m});
+  if(num(t.adv)>0)logs.push({a:num(t.adv),d:"מקדמה",dt:null,t:t});
+  (t.pays||[]).forEach(function(p){var dt=pDate(p.d);logs.push({a:num(p.a),d:p.d,dt:dt,t:t});if(dt&&dt.getMonth()===now.getMonth()&&dt.getFullYear()===now.getFullYear())mon+=num(p.a)})})});
+ var T=0,A=0;jobs.forEach(function(j){T+=j.m.tot;A+=j.m.adv});
+ var sm=el("div","pysum");[["סה״כ סגירות",T,""],["שולם עד כה",A,"ok"],["נשאר לגבות",T-A,"due"],["התקבל החודש",mon,"ok"]].forEach(function(o){var d=el("div",o[2]);d.appendChild(el("b","",fmt(o[1])));d.appendChild(el("span","",o[0]));sm.appendChild(d)});box.appendChild(sm);
+ if(!jobs.length){box.appendChild(el("p","empty","עדיין אין עבודות עם סכום סגירה. בעבודה, פתח \"לקוח ותשלום\" ורשום סכום."));return}
+ var open=jobs.filter(function(j){return j.m.left>0}).sort(function(a,b){return b.m.left-a.m.left}),full=jobs.filter(function(j){return j.m.left<=0});
+ function row(j){var t=j.t,r=el("div","pyr"+(j.m.left>0?"":" full")),a=el("div","t1");a.appendChild(el("span","",(t.c?t.c+" · ":"")+t.text));a.appendChild(el("span","lft",j.m.left>0?"נשאר "+fmt(j.m.left):"✓ שולם"));r.appendChild(a);
+  r.appendChild(el("div","t2","סגירה "+fmt(j.m.tot)+" · שולם "+fmt(j.m.adv)+" · "+j.l.name));
+  var c=el("div","t3");
+  if(j.m.left>0){var i=document.createElement("input");i.type="text";i.inputMode="numeric";i.placeholder="סכום ₪";var b=el("button","","+ רשום תשלום");b.type="button";
+   b.onclick=function(){var v=num(i.value);if(!v)return;(t.pays=t.pays||[]).push({a:v,d:new Date().toLocaleDateString("he-IL")});save();render();drawPayments()};c.appendChild(i);c.appendChild(b);
+   var n=intl(t.ph);if(n){var msg="היי"+(t.c?" "+t.c:"")+", תזכורת קטנה לגבי היתרה לתשלום: "+fmt(j.m.left)+". תודה!",w=el("a","","💬 תזכורת");w.href="https://wa.me/"+n+"?text="+encodeURIComponent(msg);w.onclick=function(ev){ev.preventDefault();openApp("whatsapp://send?phone="+n+"&text="+encodeURIComponent(msg),w.href)};c.appendChild(w)}}
+  var o=el("button","","פתח עבודה");o.type="button";o.onclick=function(){state.cur=j.l.id;opened.add(t);save();setSub("j");render();setTimeout(function(){var li=document.querySelector("#list li.open, #list .panel");if(li)li.scrollIntoView({block:"center",behavior:"smooth"})},50)};c.appendChild(o);
+  r.appendChild(c);return r}
+ box.appendChild(el("div","pyh","⏳ ממתינים לתשלום ("+open.length+")"));if(!open.length)box.appendChild(el("p","empty","אין חובות פתוחים 👏"));open.forEach(function(j){box.appendChild(row(j))});
+ logs.sort(function(a,b){return (b.dt?b.dt.getTime():0)-(a.dt?a.dt.getTime():0)});
+ if(logs.length){box.appendChild(el("div","pyh","🧾 תשלומים שהתקבלו"));logs.slice(0,15).forEach(function(g){var d=el("div","pyl");d.appendChild(el("span","",g.d+" · "+(g.t.c||g.t.text)));d.appendChild(el("span","",fmt(g.a)));box.appendChild(d)})}
+ if(full.length){box.appendChild(el("div","pyh","✅ שולמו במלואם ("+full.length+")"));full.forEach(function(j){box.appendChild(row(j))})}}
+(function(){var v="j";try{v=localStorage.getItem("tsub")||"j"}catch(e){}setSub(v)})();
 function openApp(appUrl,webUrl){var gone=false,t;
  function bye(){gone=true;clearTimeout(t)}
  document.addEventListener("visibilitychange",function v(){if(document.hidden){bye();document.removeEventListener("visibilitychange",v)}});

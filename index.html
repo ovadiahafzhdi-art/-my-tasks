@@ -774,7 +774,7 @@ function mergeData(A,B){
  var E={},eo=[];((A.events||[]).concat(B.events||[])).forEach(function(e){if(!e||!e.id)return;if(!E[e.id])eo.push(e.id);E[e.id]=pick(E[e.id],e)});
  var events=eo.map(function(id){return E[id]}).filter(function(e){return alive(e,del.e[e.id])});
  var ta=A.tasks||{},tb=B.tasks||{},src=(+tb.pu||0)>(+ta.pu||0)?tb:ta,T={lists:lists,cur:ta.cur||lists[0].id};
- PK.forEach(function(k){if(src[k]!=null)T[k]=src[k]});if(src.pu)T.pu=src.pu;
+ var tie=(+ta.pu||0)===(+tb.pu||0);PK.forEach(function(k){var v=src[k];if(v==null&&tie)v=tb[k];if(v!=null)T[k]=v});if(src.pu)T.pu=src.pu;
  return{tasks:T,events:events,del:del}}
 var PK=["mysig","legal","biz"];function prefTouch(){state.pu=Date.now()}
 function plain(x){return JSON.parse(JSON.stringify(x))}

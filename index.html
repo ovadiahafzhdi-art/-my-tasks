@@ -856,7 +856,7 @@ ensureIds();snapPrev();persist();
 
 /* ---- החתימה הקבועה שלי ---- */
 (function(){var ov=document.getElementById("sgov"),cv=document.getElementById("sgcv"),cx=cv.getContext("2d"),down=false,n=0,last=null;
- function fit(){var r=cv.getBoundingClientRect(),dp=window.devicePixelRatio||1;cv.width=Math.round(r.width*dp);cv.height=Math.round(r.height*dp);cx.setTransform(dp,0,0,dp,0,0);cx.lineCap="round";cx.lineJoin="round";cx.strokeStyle="#14213d";cx.fillStyle="#14213d";cx.lineWidth=2.6;n=0}
+ function fit(){var r=cv.getBoundingClientRect(),dp=window.devicePixelRatio||1;cv.width=Math.round(r.width*dp);cv.height=Math.round(r.height*dp);cx.setTransform(dp,0,0,dp,0,0);cx.lineCap="round";cx.lineJoin="round";cx.strokeStyle="#111";cx.fillStyle="#111";cx.lineWidth=2.6;n=0}
  function p(e){var r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
  var pts=[],lw=2.6;
  cv.addEventListener("pointerdown",function(e){e.preventDefault();cv.setPointerCapture(e.pointerId);down=true;var q=p(e);q.t=e.timeStamp;pts=[q,q];lw=2.6;cx.beginPath();cx.arc(q.x,q.y,1.3,0,7);cx.fill();n++});
@@ -894,7 +894,7 @@ ensureIds();snapPrev();persist();
    var tot=d.length/4,sum=0,sumB=0,wB=0,mx=0,thr=128;for(i=0;i<256;i++)sum+=i*hist[i];
    for(i=0;i<256;i++){wB+=hist[i];if(!wB)continue;var wF=tot-wB;if(!wF)break;sumB+=i*hist[i];var mB=sumB/wB,mF=(sum-sumB)/wF,b=wB*wF*(mB-mF)*(mB-mF);if(b>mx){mx=b;thr=i}}
    var hi=Math.min(235,thr+10),lo=Math.max(0,Math.min(thr-30,hi-40)),ink=0;
-   for(i=0;i<d.length;i+=4){L=d[i+3];var a=L>=hi?0:L<=lo?255:Math.round(255*(hi-L)/(hi-lo));d[i]=20;d[i+1]=33;d[i+2]=61;d[i+3]=a;if(a>128)ink++}
+   for(i=0;i<d.length;i+=4){L=d[i+3];var a=L>=hi?0:L<=lo?255:Math.round(255*(hi-L)/(hi-lo));d[i]=12;d[i+1]=12;d[i+2]=12;d[i+3]=a;if(a>128)ink++}
    if(ink<30||ink>tot*0.35){st("לא הצלחתי לזהות חתימה. צלם חתימה בעט כהה על דף לבן, מקרוב ובאור טוב.");return}
    x.putImageData(D,0,0);
    var X0=c.width,Y0=c.height,X1=0,Y1=0;for(var y=0;y<c.height;y++)for(var xx=0;xx<c.width;xx++){if(d[(y*c.width+xx)*4+3]>60){if(xx<X0)X0=xx;if(xx>X1)X1=xx;if(y<Y0)Y0=y;if(y>Y1)Y1=y}}

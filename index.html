@@ -350,8 +350,8 @@ function termsText(t){var m=money(t),L=["היי"+(t.c?" "+t.c:"")+", אלה תנ
  if(m.tot>0){L.push("• סכום סגירה: "+fmt(m.tot));if(m.adv>0)L.push("• שולם עד כה: "+fmt(m.adv));L.push("• יתרה לתשלום: "+fmt(m.left))}
  L.push('אם הכל מדויק, אשמח שתשיב "מאשר". תודה!');return L.join("\n")}
 function isOwner(){try{var u=firebase.auth().currentUser;if(u&&/^ovadiahafzhdi@gmail\.com$/i.test(u.email||""))return true}catch(e){}return /עובדיה/.test(state.me||"")}
-function legalName(){return state.legal||(isOwner()?"עובדיה יוסף חפצדי":state.me)||""}
-function bizName(){return state.biz||(isOwner()?"Ovadia Yosef Music Productions":"")}
+function legalName(){return state.legal||"עובדיה יוסף חפצדי"}
+function bizName(){return state.biz||"Ovadia Yosef Music Productions"}
 function contractHtml(t){var m=money(t);
  function r(k,v){return v?"<tr><td>"+k+"</td><td>"+esc(v).replace(/\n/g,"<br>")+"</td></tr>":""}
  var rows=r("שם הלקוח",t.c)+r("טלפון",t.ph)+r("תיאור העבודה",t.text)+r("שיר / מחרוזת",t.song)+r("סולם",t.key)+r("מה כלול",t.gets);

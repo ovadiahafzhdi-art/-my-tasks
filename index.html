@@ -273,7 +273,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <div class="row"><button class="go" id="pBtn" type="button">הוסף ללוז</button><span id="pSt" role="status"></span></div></details></div>
 <div class="row" style="margin:6px 0 12px"><button class="go" id="aiCal" type="button" style="width:100%">🤖 Claude יוסיף את ההופעות ליומן עם התראות</button></div><div class="fhint" id="aiCalSt"></div>
 <div id="evList"></div><p class="empty" id="evEmpty">אין הופעות קרובות. הוסף הופעה בטופס למעלה.</p>
-<details class="arch" id="archBox" hidden><summary id="archSum">📁 ארכיון הופעות ששולמו</summary><div id="archList"></div></details>
+<details class="arch" id="archBox"><summary id="archSum">📁 ארכיון הופעות ששולמו</summary><div id="archList"></div></details>
 </section>
 <section id="freeView" hidden>
 <div class="frng" id="frng"><button type="button" class="tab" data-n="7" aria-selected="true">שבוע</button><button type="button" class="tab" data-n="14" aria-selected="false">שבועיים</button><button type="button" class="tab" data-n="30" aria-selected="false">חודש</button><button type="button" class="cp" id="fCopy">העתק</button></div>
@@ -509,7 +509,7 @@ function drawArch(today){
  var bx=document.getElementById("archBox");if(!bx)return;var box=document.getElementById("archList");box.innerHTML="";
  var MON=["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
  var a=evs.filter(function(e){return e.type!=="studio"&&e.paid&&e.date<today}).sort(function(x,y){return (y.date+(y.stage||"")).localeCompare(x.date+(x.stage||""))});
- bx.hidden=!a.length;document.getElementById("archSum").textContent="📁 ארכיון הופעות ששולמו ("+a.length+")";
+ if(!a.length)box.appendChild(el("p","empty","עדיין אין כאן הופעות. הופעה שעבר התאריך שלה וסימנת עליה \"שולם\" תעבור לכאן אוטומטית."));document.getElementById("archSum").textContent="📁 ארכיון הופעות ששולמו ("+a.length+")";
  var last="";
  a.forEach(function(e){var p=e.date.split("-"),mk=p[0]+"-"+p[1];
   if(mk!==last){last=mk;var cnt=a.filter(function(o){return o.date.slice(0,7)===mk}).length;box.appendChild(el("div","armo",MON[+p[1]-1]+" "+p[0]+" · "+cnt+" הופעות"))}

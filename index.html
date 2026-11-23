@@ -136,6 +136,18 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 .pr2 input{flex:1;min-width:0}
 .pr2 button{padding:0 16px}
 .pay{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:10px;padding:6px 12px}
+.fldrow{display:flex;gap:8px;align-items:end;margin:-4px 0 14px}
+.fldrow label{flex:1;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
+.fldrow select,.det select{font:inherit;font-size:15px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.fldrow button{font:inherit;font-size:14px;padding:9px 12px;border-radius:10px;border:1px dashed #c9a25a;background:transparent;color:#c9a25a;cursor:pointer;white-space:nowrap}
+li.fold{cursor:pointer;border-color:#6b5428;background:linear-gradient(180deg,#241e14,#1a160f)}
+li.fold{gap:8px 6px}li.fold .fn{flex:1 1 100%;font-weight:800;font-size:17px;color:#e2c27f}
+li.fold .fc{flex:1;font-size:13px;color:var(--mute);padding-inline-start:20px}
+li.fold .fa{font-size:13px;color:#e8a25a;white-space:nowrap}
+li.fold .fb{font:inherit;font-size:14px;background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:3px 9px;cursor:pointer}
+li.fold .ar{display:inline-block;transition:transform .2s;color:#c9a25a}
+li.fold.op .ar{transform:rotate(-90deg)}
+li.inf{margin-inline-start:18px;border-inline-start:3px solid #6b5428}
 .sub2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
 .sub2 .tab{width:100%;text-align:center;padding:10px 8px;font-size:16px;border-radius:12px}
 #jobsPane #sum{display:none}
@@ -284,6 +296,7 @@ button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer
 <form class="new" id="form"><input type="text" id="inp" placeholder="משימה חדשה" autocomplete="off" aria-label="משימה חדשה"><button class="go" type="submit">הוסף</button></form>
 <div class="prio" id="prio" role="radiogroup" aria-label="חשיבות"></div>
 <label class="duerow">תאריך יעד משוער (לא חובה)<input type="date" id="dueIn"></label>
+<div class="fldrow"><label>📁 תיקייה<select id="fldIn"></select></label><button type="button" id="fldNew">📁 תיקייה חדשה</button></div>
 <ul id="list"></ul>
 <div class="sum" id="sum"></div>
 <div class="foot"><button id="clear" type="button">נקה משימות שבוצעו</button><button id="delList" type="button">מחק רשימה</button></div>
@@ -434,6 +447,9 @@ function panel(t,sb,nameEl){
  var d=el("div","det"),host=d;
  var nmI=f("שם המשימה","text","שם המשימה",null,false,true);nmI.onblur=function(){if(!nmI.value.trim()){t.text=t.text||"משימה";nmI.value=t.text;if(nameEl)nameEl.textContent=t.text;save()}};
  function f(lab,key,ph,mode,ltr,full){var l=document.createElement("label");if(full)l.className="full";l.appendChild(document.createTextNode(lab));var i=document.createElement(mode==="area"?"textarea":"input");if(mode==="area")i.rows=7;else i.type="text";i.value=t[key]||"";i.placeholder=ph||"";if(mode&&mode!=="area")i.inputMode=mode;if(ltr)i.dir="ltr";i.setAttribute("autocomplete","off");i.oninput=function(){t[key]=i.value;if(mode==="area")grow(i);if(key==="text"&&nameEl)nameEl.textContent=i.value;save();refresh()};l.appendChild(i);host.appendChild(l);if(mode==="area")setTimeout(function(){grow(i)},0);return i}
+ var fl=document.createElement("label");fl.className="full";fl.appendChild(document.createTextNode("📁 תיקייה"));var fs=document.createElement("select");
+ [["","ללא תיקייה"]].concat(fldNames().map(function(n){return[n,n]})).concat([["__new","+ תיקייה חדשה..."]]).forEach(function(o){var op=document.createElement("option");op.value=o[0];op.textContent=o[1];fs.appendChild(op)});fs.value=t.f||"";
+ fs.onchange=function(){var v=fs.value;if(v==="__new"){v=prompt("שם התיקייה:");v=v&&v.trim();if(!v){fs.value=t.f||"";return}}if(v)t.f=v;else delete t.f;if(v){openF.add(cur().id+"|"+v);saveF()}save();render()};fl.appendChild(fs);d.appendChild(fl);
  var dl=document.createElement("label");dl.appendChild(document.createTextNode("תאריך יעד לסיום"));var di=document.createElement("input");di.type="date";di.value=t.due||"";di.onchange=function(){t.due=di.value;save();refresh()};dl.appendChild(di);d.appendChild(dl);
  var pl2=document.createElement("label");pl2.appendChild(document.createTextNode("התקדמות (%)"));var pi2=document.createElement("input");pi2.type="number";pi2.min=0;pi2.max=100;pi2.inputMode="numeric";pi2.dir="ltr";pi2.value=num(t.prog)||"";pi2.placeholder="0";pi2.oninput=function(){t.prog=Math.min(100,Math.max(0,num(pi2.value)));save();refresh()};pl2.appendChild(pi2);d.appendChild(pl2);
  f("שיר / מחרוזת (פתק מפורט)","song","כתוב כאן מה צריך לעשות במחרוזת: סדר השירים, מעברים, סולמות, הערות...","area",false,true);f("סולם","key","");
@@ -482,8 +498,20 @@ function render(){
  var ul=document.getElementById("list");ul.innerHTML="";
  var tasks=c.tasks.slice().sort(function(x,y){return (x.done-y.done)||((x.p||2)-(y.p||2))});
  if(!tasks.length){var e=el("li","empty","אין משימות ב"+c.name+". כתוב אחת למעלה.");e.style.display="block";ul.appendChild(e)}
- tasks.forEach(function(t){
-  var li=el("li",(t.done?"done ":"")+"p"+(t.p||2));
+ fillFld();
+ var fnames=[];tasks.forEach(function(t){if(t.f&&fnames.indexOf(t.f)<0)fnames.push(t.f)});fnames.sort(function(a,b){return a.localeCompare(b,"he")});
+ fnames.forEach(function(fn){var ft=tasks.filter(function(t){return t.f===fn}),op=openF.has(c.id+"|"+fn),left=0,opn=0;
+  ft.forEach(function(t){left+=money(t).left;if(!t.done)opn++});
+  var h=el("li","fold"+(op?" op":""));var nm=el("span","fn");nm.appendChild(el("span","ar","◂"));nm.appendChild(document.createTextNode(" 📁 "+fn));h.appendChild(nm);var mt=el("span","fc",ft.length+" עבודות"+(opn?" · "+opn+" פתוחות":""));if(left>0)mt.appendChild(el("span","fa"," · נשאר "+fmt(left)));h.appendChild(mt);
+  function fb(txt,lab,fnc){var b=el("button","fb",txt);b.type="button";b.setAttribute("aria-label",lab);b.onclick=function(e){e.stopPropagation();fnc()};h.appendChild(b)}
+  fb("+","הוסף עבודה לתיקייה",function(){fldPick(fn)});
+  fb("✎","שנה שם תיקייה",function(){var n=prompt("שם חדש לתיקייה:",fn);if(!n||!(n=n.trim())||n===fn)return;c.tasks.forEach(function(t){if(t.f===fn)t.f=n});if(openF.has(c.id+"|"+fn)){openF.delete(c.id+"|"+fn);openF.add(c.id+"|"+n)}saveF();save();render()});
+  fb("🗑","בטל תיקייה",function(){if(!confirm("לבטל את התיקייה \""+fn+"\"? העבודות עצמן יישארו ברשימה, רק בלי תיקייה."))return;c.tasks.forEach(function(t){if(t.f===fn)delete t.f});save();render()});
+  h.onclick=function(){var k=c.id+"|"+fn;if(openF.has(k))openF.delete(k);else openF.add(k);saveF();render()};
+  ul.appendChild(h);if(op)ft.forEach(function(t){ul.appendChild(mkLi(t,true))})});
+ tasks.filter(function(t){return!t.f}).forEach(function(t){ul.appendChild(mkLi(t,false))});
+ function mkLi(t,inF){
+  var li=el("li",(t.done?"done ":"")+"p"+(t.p||2)+(inF?" inf":""));
   var lb=document.createElement("label");var cb=document.createElement("input");cb.type="checkbox";cb.checked=t.done;
   cb.onchange=function(){t.done=cb.checked;save();render()};
   lb.appendChild(cb);var nmS=el("span","",t.text);lb.appendChild(nmS);li.appendChild(lb);
@@ -495,12 +523,22 @@ function render(){
   x.onclick=function(){c.tasks=c.tasks.filter(function(k){return k!==t});save();render()};li.appendChild(x);
   var sb=el("div","sub",subText(t));sb.hidden=!subText(t);li.appendChild(sb);
   if(opened.has(t))li.appendChild(panel(t,sb,nmS));
-  ul.appendChild(li)});
+  return li}
 }
+var openF=new Set();try{JSON.parse(localStorage.getItem("ofold")||"[]").forEach(function(k){openF.add(k)})}catch(e){}
+function saveF(){try{localStorage.setItem("ofold",JSON.stringify(Array.from(openF)))}catch(e){}}
+function fldNames(){var a=[];cur().tasks.forEach(function(t){if(t.f&&a.indexOf(t.f)<0)a.push(t.f)});return a.sort(function(x,y){return x.localeCompare(y,"he")})}
+var fldExtra="";
+function fillFld(){var sel=document.getElementById("fldIn"),v=sel.value,a=fldNames();if(fldExtra&&a.indexOf(fldExtra)<0)a.push(fldExtra);sel.innerHTML="";
+ [["","ללא תיקייה"]].concat(a.map(function(n){return[n,"📁 "+n]})).forEach(function(o){var op=document.createElement("option");op.value=o[0];op.textContent=o[1];sel.appendChild(op)});
+ sel.value=a.indexOf(v)>=0?v:"";document.getElementById("inp").placeholder=sel.value?"עבודה חדשה בתיקייה "+sel.value:"משימה חדשה"}
+function fldPick(n){fldExtra=n;fillFld();var sel=document.getElementById("fldIn");sel.value=n;sel.onchange();var i=document.getElementById("inp");i.scrollIntoView({block:"center",behavior:"smooth"});setTimeout(function(){i.focus()},250)}
+document.getElementById("fldIn").onchange=function(){document.getElementById("inp").placeholder=this.value?"עבודה חדשה בתיקייה "+this.value:"משימה חדשה"};
+document.getElementById("fldNew").onclick=function(){var n=prompt("שם התיקייה (למשל שם הזמר או הפרויקט):");if(!n||!(n=n.trim()))return;openF.add(cur().id+"|"+n);saveF();fldPick(n)};
 var prio=2;
 document.getElementById("form").onsubmit=function(ev){ev.preventDefault();
  var i=document.getElementById("inp"),v=i.value.trim();if(!v)return;
- var du=document.getElementById("dueIn");cur().tasks.push({text:v,done:false,p:prio,due:du.value||"",prog:0});i.value="";du.value="";save();render();i.focus()};
+ var du=document.getElementById("dueIn");var nt={text:v,done:false,p:prio,due:du.value||"",prog:0},fv=document.getElementById("fldIn").value;if(fv){nt.f=fv;openF.add(cur().id+"|"+fv);saveF()}cur().tasks.push(nt);i.value="";du.value="";save();render();i.focus()};
 (function(){var box=document.getElementById("prio");
  [[1,"חשוב"],[2,"רגיל"],[3,"פחות חשוב"]].forEach(function(o){
   var b=document.createElement("button");b.type="button";b.setAttribute("role","radio");
@@ -1068,7 +1106,7 @@ function drawPayments(){var box=document.getElementById("paysPane");if(box.hidde
  if(!jobs.length){box.appendChild(el("p","empty","עדיין אין עבודות עם סכום סגירה. בעבודה, פתח \"לקוח ותשלום\" ורשום סכום."));return}
  var open=jobs.filter(function(j){return j.m.left>0}).sort(function(a,b){return b.m.left-a.m.left}),full=jobs.filter(function(j){return j.m.left<=0});
  function row(j){var t=j.t,r=el("div","pyr"+(j.m.left>0?"":" full")),a=el("div","t1");a.appendChild(el("span","",(t.c?t.c+" · ":"")+t.text));a.appendChild(el("span","lft",j.m.left>0?"נשאר "+fmt(j.m.left):"✓ שולם"));r.appendChild(a);
-  r.appendChild(el("div","t2","סגירה "+fmt(j.m.tot)+" · שולם "+fmt(j.m.adv)+" · "+j.l.name));
+  r.appendChild(el("div","t2","סגירה "+fmt(j.m.tot)+" · שולם "+fmt(j.m.adv)+" · "+j.l.name+(t.f?" › 📁 "+t.f:"")));
   var c=el("div","t3");
   if(j.m.left>0){var i=document.createElement("input");i.type="text";i.inputMode="numeric";i.placeholder="סכום ₪";var b=el("button","","+ רשום תשלום");b.type="button";
    b.onclick=function(){var v=num(i.value);if(!v)return;(t.pays=t.pays||[]).push({a:v,d:new Date().toLocaleDateString("he-IL")});save();render();drawPayments()};c.appendChild(i);c.appendChild(b);

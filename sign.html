@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>חתימה על הסכם</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#efe8d8;color:#1c1a16;font-family:Heebo,system-ui,-apple-system,Arial,sans-serif;font-size:17px;line-height:1.5;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+main{max-width:800px;margin:0 auto;padding:14px 12px 60px}
+#doc{border-radius:10px;overflow:hidden;box-shadow:0 6px 24px rgba(60,40,10,.15)}
+.box{background:#fffdf8;border:1px solid #e2d5b5;border-radius:14px;padding:18px 16px;margin-top:16px;box-shadow:0 6px 24px rgba(60,40,10,.10)}
+h2{margin:0 0 6px;font-family:"Frank Ruhl Libre",Georgia,serif;font-size:24px;color:#7a5f2c}
+.hint{color:#6b6253;font-size:15px;margin:0 0 12px}
+label.f{display:block;font-weight:600;margin:12px 0 6px}
+input[type=text]{width:100%;font:inherit;padding:12px;border:1.5px solid #d8c9a6;border-radius:10px;background:#fff}
+input[type=text]:focus,canvas:focus{outline:3px solid #c9a25a;outline-offset:2px}
+.pad{position:relative;border:1.5px dashed #c9a25a;border-radius:12px;background:#fff;touch-action:none}
+canvas{display:block;width:100%;height:190px;border-radius:12px;touch-action:none;cursor:crosshair}
+.pad .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b9a97f;pointer-events:none;font-size:16px}
+.pad .ln{position:absolute;left:16px;right:16px;bottom:40px;border-top:1px solid #e6dcc4;pointer-events:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:16px}
+.chk input{width:22px;height:22px;margin-top:2px;accent-color:#9a7a3c;flex:none}
+button{font:inherit;font-weight:700;border-radius:12px;padding:12px 18px;cursor:pointer;border:1.5px solid #c9a25a;background:#fff;color:#7a5f2c}
+button.go{width:100%;margin-top:16px;border:0;font-size:19px;padding:15px;color:#1c1a16;background:linear-gradient(135deg,#f3dfa8,#c9a25a 50%,#a8843f)}
+button:disabled{opacity:.6}
+.err{color:#b3261e;font-weight:600;margin-top:10px;min-height:1px}
+.done{text-align:center}
+.done .big{font-size:44px;line-height:1}
+.sigview{margin-top:10px;text-align:center}
+.sigview img{max-width:320px;width:100%;height:auto;border-bottom:1px solid #1c1a16}
+.meta{color:#6b6253;font-size:14px;margin-top:6px}
+.msg{text-align:center;padding:60px 16px;color:#6b6253}
+@media print{body{background:#fff}.noprint{display:none!important}#doc{box-shadow:none}.box{box-shadow:none;border:0;padding:0}}
+</style>
+</head>
+<body>
+<main>
+<div id="doc"><div class="msg" id="loading">טוען את ההסכם...</div></div>
+<section class="box" id="form" hidden aria-labelledby="fh">
+ <h2 id="fh">✍️ חתימה על ההסכם</h2>
+ <p class="hint">קרא את ההסכם, מלא את שמך וחתום עם האצבע בתיבה.</p>
+ <label class="f" for="nm">שם מלא</label>
+ <input type="text" id="nm" autocomplete="name" placeholder="השם המלא שלך">
+ <label class="f" id="padlbl">חתימה</label>
+ <div class="pad"><canvas id="cv" tabindex="0" role="img" aria-labelledby="padlbl"></canvas><div class="ln"></div><div class="ph" id="ph">חתום כאן עם האצבע</div></div>
+ <div class="row"><button type="button" id="clr">נקה חתימה</button></div>
+ <label class="chk"><input type="checkbox" id="ok"> <span>קראתי את ההסכם ואני מסכים לכל התנאים שבו.</span></label>
+ <button type="button" class="go" id="go">✓ אני מאשר וחותם</button>
+ <div class="err" id="err" role="alert"></div>
+</section>
+<section class="box done" id="signed" hidden>
+ <div class="big" aria-hidden="true">✓</div>
+ <h2>ההסכם נחתם</h2>
+ <div class="sigview"><img id="sigimg" alt="חתימת הלקוח"><div class="meta" id="meta"></div></div>
+ <div class="row noprint" style="justify-content:center"><button type="button" onclick="window.print()">🖨 שמור / הדפס PDF</button></div>
+</section>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+var FB={apiKey:"AIzaSyBrswKruObHsT1kUFy9k2lw0PtGtTOPxUU",authDomain:"my-tasks-ac0ed.firebaseapp.com",projectId:"my-tasks-ac0ed",storageBucket:"my-tasks-ac0ed.firebasestorage.app",messagingSenderId:"162476834195",appId:"1:162476834195:web:b83fd4d9edd7eebc3b3c66"};
+function $(i){return document.getElementById(i)}
+var tok=new URLSearchParams(location.search).get("t")||"",ref=null;
+function fail(m){$("doc").innerHTML="";var d=document.createElement("div");d.className="msg";d.textContent=m;$("doc").appendChild(d)}
+function showDoc(html){var doc=new DOMParser().parseFromString(html,"text/html"),host=$("doc");host.innerHTML="";var h=document.createElement("div");host.appendChild(h);
+ var css=(doc.querySelector("style")||{textContent:""}).textContent.replace(/body\{/,":host{display:block;");
+ var sr=h.attachShadow?h.attachShadow({mode:"open"}):h;sr.innerHTML="<style>"+css+".sig img{display:block;max-height:70px;max-width:90%;margin:-60px auto 4px}.sig small{display:block;font-size:11px;color:#6b6253}</style>"+doc.body.innerHTML;window.__sr=sr}
+function showSigned(v){$("form").hidden=true;$("signed").hidden=false;$("sigimg").src=v.sig||"";
+ var d=v.signedAt&&v.signedAt.toDate?v.signedAt.toDate():new Date();
+ var line="נחתם דיגיטלית ע״י "+(v.signerName||"")+" · "+d.toLocaleString("he-IL",{dateStyle:"long",timeStyle:"short"});$("meta").textContent=line;
+ var slot=window.__sr&&window.__sr.querySelector(".sig div");if(slot&&v.sig&&!slot.querySelector("img")){var im=document.createElement("img");im.src=v.sig;im.alt="חתימת הלקוח";slot.insertBefore(im,slot.firstChild);var sm=document.createElement("small");sm.textContent=line;slot.appendChild(sm)}}
+try{firebase.initializeApp(FB);ref=/^[a-f0-9]{24,64}$/.test(tok)?firebase.firestore().collection("signs").doc(tok):null}catch(e){}
+if(!ref)fail("הקישור לא תקין. בקש מנותן השירות קישור חדש.");
+else ref.get().then(function(s){if(!s.exists){fail("הקישור לא תקין או שבוטל. בקש מנותן השירות קישור חדש.");return}
+ var v=s.data();showDoc(v.html||"");if(v.status==="signed")showSigned(v);else{$("form").hidden=false;fit()}})
+ .catch(function(){fail("לא הצלחתי לטעון את ההסכם. בדוק חיבור לאינטרנט ונסה שוב.")});
+
+/* --- לוח חתימה --- */
+var cv=$("cv"),cx=cv.getContext("2d"),drawing=false,strokes=0,last=null;
+function fit(){var r=cv.getBoundingClientRect(),dp=window.devicePixelRatio||1,img=strokes?cv.toDataURL():null;cv.width=Math.round(r.width*dp);cv.height=Math.round(r.height*dp);
+ cx.setTransform(dp,0,0,dp,0,0);cx.lineCap="round";cx.lineJoin="round";cx.strokeStyle="#14213d";cx.lineWidth=2.6;
+ if(img){var im=new Image();im.onload=function(){cx.setTransform(1,0,0,1,0,0);cx.drawImage(im,0,0,cv.width,cv.height);cx.setTransform(dp,0,0,dp,0,0)};im.src=img}}
+window.addEventListener("resize",function(){if(!$("form").hidden)fit()});
+function pos(e){var r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+cv.addEventListener("pointerdown",function(e){e.preventDefault();cv.setPointerCapture(e.pointerId);drawing=true;last=pos(e);cx.beginPath();cx.arc(last.x,last.y,1.2,0,7);cx.fillStyle="#14213d";cx.fill();strokes++;$("ph").hidden=true;$("err").textContent=""});
+cv.addEventListener("pointermove",function(e){if(!drawing)return;e.preventDefault();var p=pos(e);cx.beginPath();cx.moveTo(last.x,last.y);cx.lineTo(p.x,p.y);cx.stroke();last=p});
+["pointerup","pointercancel","pointerleave"].forEach(function(t){cv.addEventListener(t,function(){drawing=false})});
+$("clr").onclick=function(){cx.clearRect(0,0,cv.width,cv.height);strokes=0;$("ph").hidden=false};
+function sigData(){var w=600,h=Math.round(cv.height*w/cv.width),c=document.createElement("canvas");c.width=w;c.height=h;var x=c.getContext("2d");x.drawImage(cv,0,0,w,h);return c.toDataURL("image/png")}
+$("go").onclick=function(){var b=this,err=$("err"),nm=$("nm").value.trim();err.textContent="";
+ if(nm.length<2){err.textContent="נא למלא שם מלא.";$("nm").focus();return}
+ if(!strokes){err.textContent="נא לחתום בתיבה.";cv.focus();return}
+ if(!$("ok").checked){err.textContent="נא לסמן שקראת ואתה מסכים לתנאים.";$("ok").focus();return}
+ b.disabled=true;b.textContent="שולח...";
+ var v={status:"signed",sig:sigData(),signerName:nm.slice(0,80),signedAt:firebase.firestore.FieldValue.serverTimestamp(),ua:navigator.userAgent.slice(0,200)};
+ ref.update(v).then(function(){return ref.get()}).then(function(s){showSigned(s.data());window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})})
+ .catch(function(e){b.disabled=false;b.textContent="✓ אני מאשר וחותם";err.textContent=e&&e.code==="permission-denied"?"ההסכם כבר נחתם או שהקישור בוטל.":"השליחה נכשלה. בדוק חיבור לאינטרנט ונסה שוב."})};
+$("nm").addEventListener("input",function(){$("err").textContent=""});
+</script>
+</body>
+</html>

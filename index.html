@@ -101,6 +101,8 @@ filter:drop-shadow(0 0 6px rgba(214,175,98,.45));animation:flow 16s ease-in-out 
 .wabtn{background:#158a43;color:#fff;border-radius:10px;padding:10px 14px;font-weight:600;font-size:15px;text-decoration:none}
 button.wabtn{border:0;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
 .wabtn.alt{background:var(--ink);color:var(--bg)}
+.signs{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.sgst{font-size:15px;color:var(--mute)}.sgst.ok{color:#7fd39a;font-weight:700}
 .scans{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .scans .ph{font-size:14px;color:var(--mute)}
 .sclist{display:flex;flex-direction:column;gap:6px}
@@ -412,6 +414,7 @@ function panel(t,sb,nameEl){
  var wa=el("div","wa");host.appendChild(wa);
  var ct=el("div","wa");host.appendChild(ct);
  var cb=el("button","wabtn alt","צור הסכם");cb.type="button";cb.onclick=function(){showContract(t)};ct.appendChild(cb);
+ signUI(t,host);
  scanUI(t,host);
  function refresh(){
   var tot=num(t.tot),left=Math.max(tot-paid(t),0);
@@ -831,6 +834,42 @@ ensureIds();snapPrev();persist();
  });
 })();
 
+
+/* ---- חתימה דיגיטלית מרחוק ---- */
+function signsCol(){return firebase.firestore().collection("signs")}
+function signUrl(id){return location.origin+location.pathname.replace(/[^\/]*$/,"")+"sign.html?t="+id}
+function newTok(){var a=new Uint8Array(18);crypto.getRandomValues(a);return Array.prototype.map.call(a,function(b){return("0"+b.toString(16)).slice(-2)}).join("")}
+function fbUser(){try{return firebase.auth().currentUser}catch(e){return null}}
+function signUI(t,host){
+ var w=el("div","signs full");host.appendChild(w);
+ w.appendChild(el("div","ph","✍️ חתימה דיגיטלית"));
+ var info=el("div","sgst");info.setAttribute("role","status");w.appendChild(info);
+ var row=el("div","wa");w.appendChild(row);var unsub=null;
+ function btn(txt,cls,fn){var b=el("button","wabtn"+(cls?" "+cls:""),txt);b.type="button";b.onclick=fn;row.appendChild(b);return b}
+ function draw(){row.innerHTML="";info.textContent="";info.className="sgst";var s=t.sign;
+  if(s&&s.status==="signed"){info.className="sgst ok";info.textContent="✓ נחתם דיגיטלית ע״י "+(s.by||"הלקוח")+" · "+new Date(s.at2||s.at).toLocaleString("he-IL",{dateStyle:"short",timeStyle:"short"});
+   btn("📄 צפה בהסכם החתום","",function(){openApp(signUrl(s.id),signUrl(s.id))});
+   btn("שלח ללקוח עותק","alt",function(){share(s.id,"שלום "+(t.c||"")+", מצורף עותק של ההסכם החתום: ")});return}
+  if(s&&s.status==="pending"){info.textContent="⏳ נשלח לחתימה, ממתין ללקוח";
+   btn("שלח שוב בוואטסאפ","",function(){share(s.id)});btn("העתק קישור","alt",function(){copy(signUrl(s.id))});
+   btn("צור קישור חדש","alt",create);return}
+  btn("✍️ שלח ללקוח לחתימה","",create)}
+ function create(){if(!fbUser()){info.textContent="צריך להיות מחובר לענן (התחברות למעלה) כדי לשלוח לחתימה.";return}
+  if(!(t.c||"").trim()){info.textContent="קודם מלא את שם הלקוח.";return}
+  var id=newTok();info.textContent="מכין קישור לחתימה...";
+  signsCol().doc(id).set({owner:fbUser().uid,task:t.id||"",client:t.c||"",html:contractHtml(t),status:"pending",created:firebase.firestore.FieldValue.serverTimestamp()})
+  .then(function(){var old=t.sign;t.sign={id:id,status:"pending",at:Date.now()};save();
+    if(old&&old.status==="pending")signsCol().doc(old.id).delete().catch(function(){});
+    if(unsub){unsub();unsub=null}draw();watch();share(id)})
+  .catch(function(e){info.textContent="לא הצלחתי ליצור קישור לחתימה. ("+(e&&e.code||"שגיאה")+")"})}
+ function share(id,pre){var msg=(pre||"שלום "+(t.c||"")+", מצורף הסכם העבודה לחתימה דיגיטלית. אפשר לקרוא ולחתום ישר מהטלפון: ")+signUrl(id);var n=intl(t.ph);
+  if(n)openApp("whatsapp://send?phone="+n+"&text="+encodeURIComponent(msg),"https://wa.me/"+n+"?text="+encodeURIComponent(msg));
+  else if(navigator.share)navigator.share({text:msg}).catch(function(){});else copy(msg)}
+ function copy(s){if(navigator.clipboard)navigator.clipboard.writeText(s).then(function(){info.textContent="הקישור הועתק. אפשר להדביק בוואטסאפ."}).catch(function(){prompt("העתק:",s)});else prompt("העתק:",s)}
+ function watch(){if(unsub||!t.sign||t.sign.status!=="pending"||!fbUser())return;
+  unsub=signsCol().doc(t.sign.id).onSnapshot(function(d){var v=d.exists?d.data():null;
+   if(v&&v.status==="signed"&&t.sign&&t.sign.status!=="signed"){t.sign=Object.assign({},t.sign,{status:"signed",by:v.signerName||"",at2:v.signedAt&&v.signedAt.toMillis?v.signedAt.toMillis():Date.now()});save();draw();if(unsub){unsub();unsub=null}}},function(){})}
+ draw();setTimeout(watch,800)}
 /* ---- הסכם חתום (סריקה) ---- */
 var SC_DB=null;
 function idb(){return new Promise(function(res){if(SC_DB)return res(SC_DB);try{var r=indexedDB.open("scans",1);r.onupgradeneeded=function(){r.result.createObjectStore("s")};r.onsuccess=function(){SC_DB=r.result;res(SC_DB)};r.onerror=function(){res(null)}}catch(e){res(null)}})}

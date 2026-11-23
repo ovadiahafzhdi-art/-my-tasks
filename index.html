@@ -881,7 +881,7 @@ ensureIds();snapPrev();persist();
  document.getElementById("sgImg").onchange=function(){var f=this.files&&this.files[0];this.value="";if(!f)return;st("מעבד את התמונה...");
   var u=URL.createObjectURL(f),im=new Image();im.onload=function(){
    var W=im.naturalWidth,H=im.naturalHeight,s=Math.min(1,1400/Math.max(W,H)),c=document.createElement("canvas");c.width=Math.round(W*s);c.height=Math.round(H*s);
-   var x=c.getContext("2d");x.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
+   var x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
    var D=x.getImageData(0,0,c.width,c.height),d=D.data,hist=new Array(256).fill(0),i,L,cw=c.width,ch=c.height;
    var lum=new Float32Array(cw*ch);for(i=0;i<lum.length;i++)lum[i]=.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2];
    /* תאורה לא אחידה: מוצאים את בהירות הנייר בכל אזור (מקסימום בבלוקים) ומנרמלים */
